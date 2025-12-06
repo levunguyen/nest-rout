@@ -42,7 +42,7 @@ export default function Topbar() {
                 {/* Profile dropdown placeholder */}
                 <div className="flex items-center gap-2 cursor-pointer">
                     <Image
-                        src="/profile.jpg"      // có thể đổi hình avatar
+                        src="/profile.jpeg"      // có thể đổi hình avatar
                         alt="Profile"
                         width={32}
                         height={32}
