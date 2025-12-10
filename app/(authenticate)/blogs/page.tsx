@@ -21,7 +21,7 @@ const blogPosts: BlogPost[] = [
         category: "AENEAN ELEIFEND. ALIQUAM",
         excerpt:
             "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
-        image: "/woman-in-sunglasses-and-scarf-travel.jpg",
+        image: "/images/woman-in-sunglasses-and-scarf-travel.png",
         featured: true,
     },
     {
@@ -29,28 +29,28 @@ const blogPosts: BlogPost[] = [
         title: "Vulputate — Tellus Etiam Commodo Pellentesque",
         author: "ELLIOT ALDERSON",
         category: "Nec Elt Quis Massa",
-        image: "/airplane-wing-sky-view.jpg",
+        image: "images/airplane-wing-sky-view.jpg",
     },
     {
         id: 3,
         title: "Etiam — Quis Naseetur Aenean Ipsum Vici",
         author: "JOANNA WELLUCK",
         category: "Category",
-        image: "/woman-with-dog-on-plane.jpg",
+        image: "images/woman-with-dog-on-plane.jpg",
     },
     {
         id: 4,
         title: "Maecena — Vitae Nec Adipiscing Quis Semper",
         author: "ELLIOT ALDERSON",
         category: "Qusm Telus Nascetn",
-        image: "/family-on-beach.jpg",
+        image: "images/family-on-beach.jpg",
     },
     {
         id: 5,
         title: "Rhoncus — Et Tellus Id Magnis Nsl Maecenas",
         author: "JOANNA WELLUCK",
         category: "Pel Pellentesque",
-        image: "/coffee-shop-interior.jpg",
+        image: "images/coffee-shop-interior.jpg",
     },
 ]
 
