@@ -54,7 +54,14 @@ const blogPosts: BlogPost[] = [
     },
 ]
 
-export default function BlogsPage() {
+export default async function BlogsPage() {
+
+    await new Promise(resolve => {
+        setTimeout(() => {
+            resolve("intentional delay")
+        }, 2000);
+    })
+
     const featuredPost = blogPosts.find((post) => post.featured)
     const otherPosts = blogPosts.filter((post) => !post.featured)
 
