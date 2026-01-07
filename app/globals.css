@@ -24,3 +24,22 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+.node {
+  background-color: lightblue;
+  border: 1px solid #333;
+  padding: 4px;
+}
+
+.nodeText {
+  font: 12px sans-serif;
+  text-align: center;
+}
+
+.linage,
+.marriage {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
