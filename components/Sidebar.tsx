@@ -18,14 +18,14 @@ export default function Sidebar() {
     const pathname = usePathname();
 
     const menu = [
-        { name: "Home", icon: <FaHome />, path: "/" },
-        { name: "Tree", icon: <FaSitemap />, path: "/tree" },
-        { name: "Maps", icon: <FaMap />, path: "/maps" },
+        { name: "Dashboard", icon: <FaHome />, path: "/dashboard" },
+        { name: "Gia Phả", icon: <FaSitemap />, path: "/tree" },
+        { name: "Bản Đồ", icon: <FaMap />, path: "/maps" },
         { name: "Blogs", icon: <FaBlog />, path: "/blogs" },
-        { name: "Search", icon: <FaSearch />, path: "/search" },
+        { name: "Tìm Kiếm", icon: <FaSearch />, path: "/search" },
         { name: "People", icon: <FaUsers />, path: "/people" },
         { name: "Family", icon: <FaUserFriends />, path: "/family" },
-        { name: "Event", icon: <FaCalendarAlt />, path: "/event" },
+        { name: "Sự Kiện", icon: <FaCalendarAlt />, path: "/event" },
         { name: "Billing", icon: <FaMoneyBill />, path: "/billing" },
     ];
 

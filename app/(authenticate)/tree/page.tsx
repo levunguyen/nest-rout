@@ -1,10 +1,16 @@
-import ClientPage from "./ClientPage"
+import { FamilyTree } from "./components/family-tree/FamilyTree";
 
-export default function TreePage() {
+export const metadata = {
+    title: "Family Tree",
+    description: "Family Tree Visualization",
+};
+
+const Index = () => {
     return (
-        <main style={{ padding: 24 }}>
-            <h1>Family Tree</h1>
-            <ClientPage />
-        </main>
-    )
-}
+        <>
+            <FamilyTree />
+        </>
+    );
+};
+
+export default Index;
