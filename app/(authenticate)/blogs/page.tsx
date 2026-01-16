@@ -1,4 +1,4 @@
-"use client"
+
 import { FaFacebook, FaTwitter, FaLinkedin, FaShareAlt } from "react-icons/fa"
 
 interface BlogPost {

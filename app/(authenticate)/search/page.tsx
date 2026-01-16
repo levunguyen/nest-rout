@@ -1,400 +1,301 @@
-"use client"
+"use client";
 
-import type React from "react"
+import { useState } from "react";
+import {
+    MdSearch,
+    MdPerson,
+    MdLocationOn,
+    MdTune,
+} from "react-icons/md";
+import { motion, AnimatePresence } from "framer-motion";
 
-import { useState } from "react"
-import Link from "next/link"
-import { BiLeaf } from "react-icons/bi"
-import { MdSearch, MdClear } from "react-icons/md"
+/* ================= TYPES ================= */
+type Person = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    relation: string;
+    birthYear: number;
+    deathYear?: number;
+    location: string;
+};
 
-export default function SearchPage() {
-    const [searchType, setSearchType] = useState<"basic" | "advanced">("basic")
-    const [basicQuery, setBasicQuery] = useState("")
-    const [searchResults, setSearchResults] = useState<any[]>([])
-    const [showAdvanced, setShowAdvanced] = useState(false)
 
-    // Advanced search filters
-    const [advancedFilters, setAdvancedFilters] = useState({
-        firstName: "",
-        lastName: "",
-        birthYear: "",
-        birthYearEnd: "",
-        deathYear: "",
-        deathYearEnd: "",
+type SearchMode = "name" | "location";
+
+/* ================= MOCK DATA ================= */
+const DATA: Person[] = [
+    {
+        id: 1,
+        firstName: "Nguyen",
+        lastName: "Van A",
+        relation: "Grandfather",
+        birthYear: 1930,
+        deathYear: 1995,
+        location: "Hue",
+    },
+    {
+        id: 2,
+        firstName: "Nguyen",
+        lastName: "Thi B",
+        relation: "Mother",
+        birthYear: 1965,
+        location: "Da Nang",
+        father: "Nguyen Van A",
+        mother: "Tran Thi C",
+    },
+    {
+        id: 3,
+        firstName: "Nguyen",
+        lastName: "Van C",
+        relation: "Son",
+        birthYear: 1995,
+        location: "Ho Chi Minh City",
+        father: "Nguyen Van D",
+        mother: "Nguyen Thi B",
+    },
+];
+
+
+/* ================= COMPONENT ================= */
+export default function FamilyTreeSearch() {
+    /* ---------- BASIC ---------- */
+    const [query, setQuery] = useState("");
+    const [mode, setMode] = useState<SearchMode>("name");
+
+    /* ---------- ADVANCED ---------- */
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [filters, setFilters] = useState({
         relation: "",
-        location: "",
-    })
+        birthFrom: "",
+        birthTo: "",
+    });
 
-    const mockFamilyData = [
-        {
-            id: 1,
-            firstName: "John",
-            lastName: "Smith",
-            birthYear: 1950,
-            deathYear: 2020,
-            relation: "Grandfather",
-            location: "New York",
-        },
-        {
-            id: 2,
-            firstName: "Mary",
-            lastName: "Smith",
-            birthYear: 1952,
-            deathYear: null,
-            relation: "Grandmother",
-            location: "New York",
-        },
-        {
-            id: 3,
-            firstName: "James",
-            lastName: "Smith",
-            birthYear: 1975,
-            deathYear: null,
-            relation: "Father",
-            location: "California",
-        },
-        {
-            id: 4,
-            firstName: "Sarah",
-            lastName: "Smith",
-            birthYear: 1978,
-            deathYear: null,
-            relation: "Mother",
-            location: "California",
-        },
-        {
-            id: 5,
-            firstName: "Michael",
-            lastName: "Smith",
-            birthYear: 2000,
-            deathYear: null,
-            relation: "Brother",
-            location: "Texas",
-        },
-        {
-            id: 6,
-            firstName: "Emily",
-            lastName: "Johnson",
-            birthYear: 1980,
-            deathYear: null,
-            relation: "Cousin",
-            location: "Florida",
-        },
-    ]
+    const [results, setResults] = useState<Person[]>(DATA);
 
-    // Basic search handler
-    const handleBasicSearch = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!basicQuery.trim()) {
-            setSearchResults([])
-            return
+    /* ================= SEARCH LOGIC ================= */
+    const handleSearch = () => {
+        let filtered = [...DATA];
+        const q = query.trim().toLowerCase();
+
+        // Basic
+        if (q) {
+            filtered = filtered.filter((p) =>
+                mode === "name"
+                    ? `${p.firstName} ${p.lastName}`.toLowerCase().includes(q)
+                    : p.location.toLowerCase().includes(q)
+            );
         }
 
-        const query = basicQuery.toLowerCase()
-        const results = mockFamilyData.filter(
-            (person) =>
-                person.firstName.toLowerCase().includes(query) ||
-                person.lastName.toLowerCase().includes(query) ||
-                person.relation.toLowerCase().includes(query),
-        )
-        setSearchResults(results)
-    }
-
-    // Advanced search handler
-    const handleAdvancedSearch = (e: React.FormEvent) => {
-        e.preventDefault()
-        let results = mockFamilyData
-
-        if (advancedFilters.firstName) {
-            results = results.filter((p) => p.firstName.toLowerCase().includes(advancedFilters.firstName.toLowerCase()))
-        }
-        if (advancedFilters.lastName) {
-            results = results.filter((p) => p.lastName.toLowerCase().includes(advancedFilters.lastName.toLowerCase()))
-        }
-        if (advancedFilters.birthYear) {
-            results = results.filter((p) => p.birthYear >= Number.parseInt(advancedFilters.birthYear))
-        }
-        if (advancedFilters.birthYearEnd) {
-            results = results.filter((p) => p.birthYear <= Number.parseInt(advancedFilters.birthYearEnd))
-        }
-        if (advancedFilters.deathYear) {
-            results = results.filter((p) => p.deathYear && p.deathYear >= Number.parseInt(advancedFilters.deathYear))
-        }
-        if (advancedFilters.deathYearEnd) {
-            results = results.filter((p) => p.deathYear && p.deathYear <= Number.parseInt(advancedFilters.deathYearEnd))
-        }
-        if (advancedFilters.relation) {
-            results = results.filter((p) => p.relation.toLowerCase().includes(advancedFilters.relation.toLowerCase()))
-        }
-        if (advancedFilters.location) {
-            results = results.filter((p) => p.location.toLowerCase().includes(advancedFilters.location.toLowerCase()))
+        // Advanced
+        if (filters.relation) {
+            filtered = filtered.filter((p) =>
+                p.relation.toLowerCase().includes(filters.relation.toLowerCase())
+            );
         }
 
-        setSearchResults(results)
-    }
+        if (filters.birthFrom) {
+            filtered = filtered.filter(
+                (p) => p.birthYear >= Number(filters.birthFrom)
+            );
+        }
 
-    const clearSearch = () => {
-        setBasicQuery("")
-        setAdvancedFilters({
-            firstName: "",
-            lastName: "",
-            birthYear: "",
-            birthYearEnd: "",
-            deathYear: "",
-            deathYearEnd: "",
-            relation: "",
-            location: "",
-        })
-        setSearchResults([])
-    }
+        if (filters.birthTo) {
+            filtered = filtered.filter(
+                (p) => p.birthYear <= Number(filters.birthTo)
+            );
+        }
 
+        setResults(filtered);
+    };
+
+    const resetAdvanced = () => {
+        setFilters({ relation: "", birthFrom: "", birthTo: "" });
+    };
+
+    /* ================= UI ================= */
     return (
-        <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
+        <div className="min-h-screen bg-neutral-100 px-4 py-14">
+            {/* ================= SEARCH BOX ================= */}
+            <div className="bg-white max-w-4xl mx-auto rounded-3xl shadow-xl px-8 py-10 mb-10">
 
+                {/* BASIC SEARCH */}
+                <div className="flex items-center gap-2 bg-neutral-50 border rounded-2xl p-2">
+                    <div className="relative flex-1">
+                        <MdSearch className="absolute left-4 top-3.5 text-neutral-400" />
+                        <input
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                            placeholder={
+                                mode === "name"
+                                    ? "Search by name…"
+                                    : "Search by location…"
+                            }
+                            className="w-full pl-12 pr-4 py-3 bg-transparent outline-none"
+                        />
+                    </div>
 
-            {/* Search Content */}
-            <div className="max-w-6xl mx-auto px-6 md:px-12 py-12">
-                {/* Search Type Tabs */}
-                <div className="flex gap-4 mb-8 border-b border-amber-200">
+                    {/* MODE */}
+                    <div className="flex bg-white rounded-xl border p-1">
+                        <button
+                            onClick={() => setMode("name")}
+                            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1
+                ${mode === "name" ? "bg-neutral-900 text-white" : ""}
+              `}
+                        >
+                            <MdPerson /> Name
+                        </button>
+                        <button
+                            onClick={() => setMode("location")}
+                            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1
+                ${mode === "location" ? "bg-neutral-900 text-white" : ""}
+              `}
+                        >
+                            <MdLocationOn /> Location
+                        </button>
+                    </div>
+
                     <button
-                        onClick={() => setSearchType("basic")}
-                        className={`pb-4 px-4 font-medium transition ${searchType === "basic"
-                            ? "border-b-2 border-amber-700 text-amber-700"
-                            : "text-amber-600 hover:text-amber-700"
-                            }`}
+                        onClick={handleSearch}
+                        className="px-6 py-3 rounded-xl bg-amber-600 text-white font-medium"
                     >
-                        Basic Search
-                    </button>
-                    <button
-                        onClick={() => setSearchType("advanced")}
-                        className={`pb-4 px-4 font-medium transition ${searchType === "advanced"
-                            ? "border-b-2 border-amber-700 text-amber-700"
-                            : "text-amber-600 hover:text-amber-700"
-                            }`}
-                    >
-                        Advanced Search
+                        Search
                     </button>
                 </div>
 
-                {/* Basic Search Form */}
-                {searchType === "basic" && (
-                    <form onSubmit={handleBasicSearch} className="mb-8">
-                        <div className="flex gap-2 mb-4">
-                            <div className="flex-1 relative">
-                                <MdSearch className="absolute left-3 top-3 text-amber-600" size={20} />
+                {/* ADVANCED TOGGLE */}
+                <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="mt-4 flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
+                >
+                    <MdTune />
+                    Advanced filters
+                </button>
+
+                {/* ADVANCED PANEL */}
+                <AnimatePresence>
+                    {showAdvanced && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-6 bg-neutral-50 rounded-2xl p-6 space-y-4"
+                        >
+                            <div className="grid md:grid-cols-3 gap-4">
                                 <input
-                                    type="text"
-                                    placeholder="Search by name, relation, or location..."
-                                    value={basicQuery}
-                                    onChange={(e) => setBasicQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-transparent"
+                                    placeholder="Relation (Father, Mother…)"
+                                    value={filters.relation}
+                                    onChange={(e) =>
+                                        setFilters({ ...filters, relation: e.target.value })
+                                    }
+                                    className="px-4 py-2 rounded-xl border"
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Birth year from"
+                                    value={filters.birthFrom}
+                                    onChange={(e) =>
+                                        setFilters({ ...filters, birthFrom: e.target.value })
+                                    }
+                                    className="px-4 py-2 rounded-xl border"
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Birth year to"
+                                    value={filters.birthTo}
+                                    onChange={(e) =>
+                                        setFilters({ ...filters, birthTo: e.target.value })
+                                    }
+                                    className="px-4 py-2 rounded-xl border"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                className="bg-amber-700 text-white px-8 py-3 rounded-lg hover:bg-amber-800 transition font-medium"
-                            >
-                                Search
-                            </button>
-                            {basicQuery && (
+
+                            <div className="flex gap-3">
                                 <button
-                                    type="button"
-                                    onClick={clearSearch}
-                                    className="bg-amber-100 text-amber-700 px-4 py-3 rounded-lg hover:bg-amber-200 transition"
+                                    onClick={handleSearch}
+                                    className="px-6 py-2 rounded-xl bg-neutral-900 text-white"
                                 >
-                                    <MdClear size={20} />
+                                    Apply filters
                                 </button>
-                            )}
-                        </div>
-                    </form>
-                )}
-
-                {/* Advanced Search Form */}
-                {searchType === "advanced" && (
-                    <form onSubmit={handleAdvancedSearch} className="mb-8 bg-amber-50 p-6 rounded-lg border border-amber-200">
-                        <h3 className="text-xl font-serif font-bold text-amber-900 mb-6">Filter Results</h3>
-
-                        <div className="grid md:grid-cols-2 gap-6 mb-6">
-                            {/* Name Fields */}
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">First Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., John"
-                                    value={advancedFilters.firstName}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, firstName: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
+                                <button
+                                    onClick={resetAdvanced}
+                                    className="px-6 py-2 rounded-xl border"
+                                >
+                                    Reset
+                                </button>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Last Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., Smith"
-                                    value={advancedFilters.lastName}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, lastName: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            {/* Birth Year Range */}
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Birth Year From</label>
-                                <input
-                                    type="number"
-                                    placeholder="e.g., 1950"
-                                    value={advancedFilters.birthYear}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, birthYear: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Birth Year To</label>
-                                <input
-                                    type="number"
-                                    placeholder="e.g., 1980"
-                                    value={advancedFilters.birthYearEnd}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, birthYearEnd: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            {/* Death Year Range */}
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Death Year From</label>
-                                <input
-                                    type="number"
-                                    placeholder="Optional"
-                                    value={advancedFilters.deathYear}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, deathYear: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Death Year To</label>
-                                <input
-                                    type="number"
-                                    placeholder="Optional"
-                                    value={advancedFilters.deathYearEnd}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, deathYearEnd: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            {/* Relation and Location */}
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Relation</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., Grandfather"
-                                    value={advancedFilters.relation}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, relation: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-amber-900 mb-2">Location</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., New York"
-                                    value={advancedFilters.location}
-                                    onChange={(e) => setAdvancedFilters({ ...advancedFilters, location: e.target.value })}
-                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-700"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                type="submit"
-                                className="bg-amber-700 text-white px-8 py-3 rounded-lg hover:bg-amber-800 transition font-medium"
-                            >
-                                Search
-                            </button>
-                            <button
-                                type="button"
-                                onClick={clearSearch}
-                                className="bg-white border border-amber-300 text-amber-700 px-8 py-3 rounded-lg hover:bg-amber-50 transition font-medium"
-                            >
-                                Clear Filters
-                            </button>
-                        </div>
-                    </form>
-                )}
-
-                {/* Search Results */}
-                <div>
-                    {searchResults.length > 0 && (
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-serif font-bold text-amber-900 mb-4">
-                                Results ({searchResults.length} found)
-                            </h2>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {searchResults.map((person) => (
-                                    <div
-                                        key={person.id}
-                                        className="bg-white border border-amber-200 rounded-lg p-6 hover:shadow-lg transition"
-                                    >
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div>
-                                                <h3 className="text-xl font-serif font-bold text-amber-900">
-                                                    {person.firstName} {person.lastName}
-                                                </h3>
-                                                <p className="text-amber-700 font-medium">{person.relation}</p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2 text-sm text-amber-800">
-                                            <p>
-                                                <span className="font-semibold">Born:</span> {person.birthYear}
-                                            </p>
-                                            {person.deathYear && (
-                                                <p>
-                                                    <span className="font-semibold">Died:</span> {person.deathYear}
-                                                </p>
-                                            )}
-                                            <p>
-                                                <span className="font-semibold">Location:</span> {person.location}
-                                            </p>
-                                        </div>
-                                        <button className="mt-4 w-full bg-amber-700 text-white py-2 rounded-lg hover:bg-amber-800 transition font-medium">
-                                            View Profile
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        </motion.div>
                     )}
-
-                    {basicQuery && searchResults.length === 0 && (
-                        <div className="text-center py-12 bg-amber-50 rounded-lg border border-amber-200">
-                            <p className="text-amber-800 text-lg mb-4">No results found for "{basicQuery}"</p>
-                            <p className="text-amber-700">Try a different search term or use advanced search with filters</p>
-                        </div>
-                    )}
-
-                    {Object.values(advancedFilters).some((v) => v) && searchResults.length === 0 && searchType === "advanced" && (
-                        <div className="text-center py-12 bg-amber-50 rounded-lg border border-amber-200">
-                            <p className="text-amber-800 text-lg mb-4">No family members match your filters</p>
-                            <p className="text-amber-700">Try adjusting your search criteria</p>
-                        </div>
-                    )}
-
-                    {!basicQuery && !Object.values(advancedFilters).some((v) => v) && (
-                        <div className="text-center py-12 bg-amber-50 rounded-lg border border-amber-200">
-                            <MdSearch className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-                            <p className="text-amber-800 text-lg">
-                                {searchType === "basic"
-                                    ? "Enter a search term to find family members"
-                                    : "Apply filters to search your family tree"}
-                            </p>
-                        </div>
-                    )}
-                </div>
+                </AnimatePresence>
             </div>
-        </main>
-    )
+
+            {/* ================= RESULTS ================= */}
+            {/* ================= RESULTS TABLE ================= */}
+            <div className="max-w-6xl mx-auto mt-10">
+                {results.length > 0 ? (
+                    <div className="overflow-x-auto bg-white rounded-2xl shadow">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-neutral-100 text-sm text-neutral-700">
+                                    <th className="px-4 py-3 text-left">Name</th>
+                                    <th className="px-4 py-3 text-left">Relation</th>
+                                    <th className="px-4 py-3 text-left">Father</th>
+                                    <th className="px-4 py-3 text-left">Mother</th>
+                                    <th className="px-4 py-3 text-left">Birth – Death</th>
+                                    <th className="px-4 py-3 text-left">Location</th>
+                                    <th className="px-4 py-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {results.map((p) => (
+                                    <tr
+                                        key={p.id}
+                                        className="border-t hover:bg-amber-50 transition text-sm"
+                                    >
+                                        <td className="px-4 py-3 font-medium">
+                                            {p.firstName} {p.lastName}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-neutral-600">
+                                            {p.relation}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {p.father || <span className="text-neutral-400">—</span>}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {p.mother || <span className="text-neutral-400">—</span>}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {p.birthYear}
+                                            {p.deathYear ? ` – ${p.deathYear}` : ""}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {p.location}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-center">
+                                            <button className="px-3 py-1 rounded-lg bg-neutral-900 text-white text-xs hover:bg-neutral-800">
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="text-center text-neutral-500 mt-16">
+                        No results found
+                    </div>
+                )}
+            </div>
+
+        </div>
+    );
 }
