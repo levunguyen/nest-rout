@@ -1,0 +1,163 @@
+import { FamilyMember, Donation } from "../types/donation";
+
+export const familyMembers: FamilyMember[] = [
+    {
+        id: "1",
+        name: "Nguyễn Văn An",
+        avatar: "👴",
+        relationship: "Ông nội",
+        totalDonated: 15000000,
+    },
+    {
+        id: "2",
+        name: "Trần Thị Bình",
+        avatar: "👵",
+        relationship: "Bà nội",
+        totalDonated: 12000000,
+    },
+    {
+        id: "3",
+        name: "Nguyễn Văn Cường",
+        avatar: "👨",
+        relationship: "Bố",
+        totalDonated: 25000000,
+    },
+    {
+        id: "4",
+        name: "Lê Thị Dung",
+        avatar: "👩",
+        relationship: "Mẹ",
+        totalDonated: 18000000,
+    },
+    {
+        id: "5",
+        name: "Nguyễn Minh Đức",
+        avatar: "👦",
+        relationship: "Con trai",
+        totalDonated: 5000000,
+    },
+    {
+        id: "6",
+        name: "Nguyễn Thị Hoa",
+        avatar: "👧",
+        relationship: "Con gái",
+        totalDonated: 3000000,
+    },
+];
+
+export const donations: Donation[] = [
+    // 2024
+    {
+        id: "d1",
+        memberId: "3",
+        memberName: "Nguyễn Văn Cường",
+        amount: 5000000,
+        purpose: "Xây dựng nhà thờ họ",
+        date: "2024-01-15",
+        note: "Đợt 1",
+    },
+    {
+        id: "d2",
+        memberId: "1",
+        memberName: "Nguyễn Văn An",
+        amount: 3000000,
+        purpose: "Giỗ tổ",
+        date: "2024-01-10",
+    },
+    {
+        id: "d3",
+        memberId: "4",
+        memberName: "Lê Thị Dung",
+        amount: 2000000,
+        purpose: "Tu sửa mộ phần",
+        date: "2024-01-08",
+    },
+    {
+        id: "d4",
+        memberId: "2",
+        memberName: "Trần Thị Bình",
+        amount: 2500000,
+        purpose: "Quỹ học bổng",
+        date: "2024-01-05",
+    },
+    {
+        id: "d5",
+        memberId: "5",
+        memberName: "Nguyễn Minh Đức",
+        amount: 1000000,
+        purpose: "Xây dựng nhà thờ họ",
+        date: "2024-01-03",
+        note: "Đóng góp từ tiền lương tháng",
+    },
+    // 2023
+    {
+        id: "d6",
+        memberId: "3",
+        memberName: "Nguyễn Văn Cường",
+        amount: 10000000,
+        purpose: "Xây dựng nhà thờ họ",
+        date: "2023-12-20",
+        note: "Đợt 2",
+    },
+    {
+        id: "d7",
+        memberId: "1",
+        memberName: "Nguyễn Văn An",
+        amount: 5000000,
+        purpose: "Giỗ tổ",
+        date: "2023-10-15",
+    },
+    {
+        id: "d8",
+        memberId: "4",
+        memberName: "Lê Thị Dung",
+        amount: 8000000,
+        purpose: "Xây dựng nhà thờ họ",
+        date: "2023-08-20",
+    },
+    {
+        id: "d9",
+        memberId: "6",
+        memberName: "Nguyễn Thị Hoa",
+        amount: 3000000,
+        purpose: "Quỹ học bổng",
+        date: "2023-06-01",
+        note: "Tiền thưởng học kỳ",
+    },
+    // 2022
+    {
+        id: "d10",
+        memberId: "2",
+        memberName: "Trần Thị Bình",
+        amount: 4000000,
+        purpose: "Tu sửa mộ phần",
+        date: "2022-11-10",
+    },
+    {
+        id: "d11",
+        memberId: "3",
+        memberName: "Nguyễn Văn Cường",
+        amount: 10000000,
+        purpose: "Xây dựng nhà thờ họ",
+        date: "2022-07-15",
+        note: "Đợt khởi công",
+    },
+    {
+        id: "d12",
+        memberId: "1",
+        memberName: "Nguyễn Văn An",
+        amount: 7000000,
+        purpose: "Giỗ tổ",
+        date: "2022-03-20",
+    },
+    {
+        id: "d13",
+        memberId: "4",
+        memberName: "Lê Thị Dung",
+        amount: 8000000,
+        purpose: "Hoạt động từ thiện",
+        date: "2022-01-05",
+    },
+];
+
+export const donationGoal = 100000000; // 100 triệu
