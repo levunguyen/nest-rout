@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 
 interface FamilyMember {
     id: string
@@ -31,8 +32,8 @@ const familyMembers: FamilyMember[] = [
         state: "MO",
         relationship: "Grandmother",
         age: 82,
-        latitude: 39.0997,
-        longitude: -95.6789,
+        latitude: 39.1,
+        longitude: -95.68,
     },
     {
         id: "3",
@@ -71,8 +72,8 @@ const familyMembers: FamilyMember[] = [
         state: "OK",
         relationship: "Brother",
         age: 32,
-        latitude: 36.1627,
-        longitude: -95.9978,
+        latitude: 36.163,
+        longitude: -95.998,
     },
 ]
 
@@ -80,25 +81,19 @@ const getUniqueCities = (members: FamilyMember[]) => {
     return Array.from(new Set(members.map((m) => `${m.city}, ${m.state}`))).sort()
 }
 
+const getCityCoordinates = (city: string) => {
+    const cityMap: { [key: string]: { lat: number; lng: number } } = {
+        "Kansas City, MO": { lat: 39.0997, lng: -95.6789 },
+        "Jefferson City, MO": { lat: 38.2527, lng: -92.2352 },
+        "Topeka, KS": { lat: 38.8816, lng: -96.7265 },
+        "Tulsa, OK": { lat: 36.1627, lng: -95.9978 },
+    }
+    return cityMap[city] || { lat: 39.0997, lng: -95.6789 }
+}
+
 export default function MapsPage() {
     const [selectedCity, setSelectedCity] = useState("")
 
-    const getMapCenter = () => {
-        if (!selectedCity) {
-            return { lat: 39.0997, lng: -95.6789, zoom: 4 }
-        }
-
-        const locationMembers = familyMembers.filter((m) => `${m.city}, ${m.state}` === selectedCity)
-        if (locationMembers.length === 0) {
-            return { lat: 39.0997, lng: -95.6789, zoom: 4 }
-        }
-
-        const avgLat = locationMembers.reduce((sum, m) => sum + m.latitude, 0) / locationMembers.length
-        const avgLng = locationMembers.reduce((sum, m) => sum + m.longitude, 0) / locationMembers.length
-        return { lat: avgLat, lng: avgLng, zoom: 12 }
-    }
-
-    const mapCenter = getMapCenter()
     const uniqueCities = getUniqueCities(familyMembers)
 
     const getMembersInCity = () => {
@@ -107,6 +102,10 @@ export default function MapsPage() {
     }
 
     const membersInCity = getMembersInCity()
+    const coords = selectedCity ? getCityCoordinates(selectedCity) : { lat: 39.0997, lng: -95.6789 }
+    const zoom = selectedCity ? 13 : 5
+
+    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${(coords.lng - 0.05).toFixed(4)}%2C${(coords.lat - 0.05).toFixed(4)}%2C${(coords.lng + 0.05).toFixed(4)}%2C${(coords.lat + 0.05).toFixed(4)}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`
 
     return (
         <div className="w-full h-screen flex flex-col bg-background">
@@ -143,47 +142,19 @@ export default function MapsPage() {
             </div>
 
             {/* Map Container */}
-            <div className="flex-1 flex gap-4 p-4">
-                {/* Google Maps Embed */}
-                <div className="flex-1 rounded-lg overflow-hidden shadow-lg border border-border">
+            <div className="flex-1 p-4">
+                <div className="w-full h-full rounded-lg overflow-hidden shadow-lg border border-border">
                     <iframe
                         width="100%"
                         height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        marginHeight={0}
+                        marginWidth={0}
+                        src={mapUrl}
                         style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyBQqqOaazW6dQqHa1jTCGzzMKVZG_OqFdI&center=${mapCenter.lat},${mapCenter.lng}&zoom=${mapCenter.zoom}`}
-                    ></iframe>
+                    />
                 </div>
-
-                {/* Members List Sidebar */}
-                {selectedCity && (
-                    <div className="w-80 bg-white rounded-lg shadow-lg border border-border p-4 flex flex-col">
-                        <h2 className="text-lg font-bold text-foreground mb-1">Members in {selectedCity}</h2>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Showing {membersInCity.length} family member{membersInCity.length !== 1 ? "s" : ""}
-                        </p>
-
-                        <div className="flex-1 overflow-y-auto space-y-3">
-                            {membersInCity.map((member) => (
-                                <div
-                                    key={member.id}
-                                    className="p-3 bg-secondary rounded-lg border border-border hover:bg-muted transition-colors"
-                                >
-                                    <p className="font-semibold text-foreground text-sm">{member.name}</p>
-                                    <p className="text-xs text-accent font-medium mb-2">{member.relationship}</p>
-                                    <div className="space-y-1 text-xs text-muted-foreground">
-                                        <p>
-                                            📍 {member.city}, {member.state}
-                                        </p>
-                                        <p>👤 {member.age} years old</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     )
