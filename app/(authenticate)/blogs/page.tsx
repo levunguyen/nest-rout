@@ -28,28 +28,40 @@ const blogPosts: BlogPost[] = [
         id: 2,
         title: "Vulputate — Tellus Etiam Commodo Pellentesque",
         author: "ELLIOT ALDERSON",
+        date: "DECEMBER 9, 2018",
         category: "Nec Elt Quis Massa",
+        excerpt:
+            "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
         image: "images/airplane-wing-sky-view.jpg",
     },
     {
         id: 3,
         title: "Etiam — Quis Naseetur Aenean Ipsum Vici",
         author: "JOANNA WELLUCK",
+        date: "DECEMBER 9, 2018",
         category: "Category",
+        excerpt:
+            "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
         image: "images/woman-with-dog-on-plane.jpg",
     },
     {
         id: 4,
         title: "Maecena — Vitae Nec Adipiscing Quis Semper",
         author: "ELLIOT ALDERSON",
+        date: "DECEMBER 9, 2018",
         category: "Qusm Telus Nascetn",
+        excerpt:
+            "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
         image: "images/family-on-beach.jpg",
     },
     {
         id: 5,
         title: "Rhoncus — Et Tellus Id Magnis Nsl Maecenas",
         author: "JOANNA WELLUCK",
+        date: "DECEMBER 9, 2018",
         category: "Pel Pellentesque",
+        excerpt:
+            "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
         image: "images/coffee-shop-interior.jpg",
     },
 ]
