@@ -24,7 +24,7 @@ export default function Sidebar() {
         { name: "Blogs", icon: <FaBlog />, path: "/blogs" },
         { name: "Tìm Kiếm", icon: <FaSearch />, path: "/search" },
         { name: "People", icon: <FaUsers />, path: "/people" },
-        { name: "Quản lý", icon: <FaUserFriends />, path: "/admin" },
+        { name: "Quản lý", icon: <FaUserFriends />, path: "/admin/dashboard" },
         { name: "Sự Kiện", icon: <FaCalendarAlt />, path: "/event" },
         { name: "Thanh Toán", icon: <FaMoneyBill />, path: "/billing" },
     ];
