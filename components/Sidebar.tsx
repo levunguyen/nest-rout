@@ -26,7 +26,7 @@ export default function Sidebar() {
         { name: "People", icon: <FaUsers />, path: "/people" },
         { name: "Quản lý", icon: <FaUserFriends />, path: "/admin/dashboard" },
         { name: "Sự Kiện", icon: <FaCalendarAlt />, path: "/event" },
-        { name: "Thanh Toán", icon: <FaMoneyBill />, path: "/billing" },
+        { name: "Thanh Toán", icon: <FaMoneyBill />, path: "/payment" },
     ];
 
     return (
