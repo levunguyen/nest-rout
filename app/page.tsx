@@ -107,7 +107,7 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href="/pricing"
+            href="/signup"
             className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-accent-foreground"
           >
             Bắt Đầu Ngay
