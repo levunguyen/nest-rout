@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react";
-import { CreditCard, Lock, Wallet, Building2, Smartphone, Bookmark, ArrowLeft, ArrowRight } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { CreditCard, Lock, Wallet, Building2, Smartphone, Bookmark, ArrowLeft } from "lucide-react";
+import { cn } from "@/components/lib/utils";
 
 type PaymentMethod = "card" | "ewallet" | "bank" | "inapp";
 type PaymentFrequency = "onetime" | "recurring";

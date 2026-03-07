@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 import UpgradeFlowModal from "./UpgradeFlowModal";
 
 interface PricingCardProps {

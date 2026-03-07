@@ -1,5 +1,5 @@
 import { FamilyMember } from "../../types/FamilyTree";
-import { cn } from "../../lib/utils";
+import { cn } from "@/components/lib/utils";
 
 // Custom Female Icon component
 const FemaleIcon = ({ className }: { className?: string }) => (
@@ -91,6 +91,7 @@ export const FamilyMemberCard = ({
             )}
           >
             {member.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={member.imageUrl}
                 alt={member.name}

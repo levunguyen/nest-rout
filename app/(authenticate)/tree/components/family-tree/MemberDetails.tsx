@@ -1,13 +1,13 @@
 import { FamilyMember } from "../../types/FamilyTree";
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog";
+} from "@/components/ui/dialog";
 import { User, Calendar, Users, Edit2, Heart } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/components/lib/utils";
 
 interface MemberDetailsProps {
   member: FamilyMember | null;

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
+import { useState } from "react"
 
 interface FamilyMember {
     id: string
@@ -96,14 +95,7 @@ export default function MapsPage() {
 
     const uniqueCities = getUniqueCities(familyMembers)
 
-    const getMembersInCity = () => {
-        if (!selectedCity) return []
-        return familyMembers.filter((m) => `${m.city}, ${m.state}` === selectedCity)
-    }
-
-    const membersInCity = getMembersInCity()
     const coords = selectedCity ? getCityCoordinates(selectedCity) : { lat: 39.0997, lng: -95.6789 }
-    const zoom = selectedCity ? 13 : 5
 
     const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${(coords.lng - 0.05).toFixed(4)}%2C${(coords.lat - 0.05).toFixed(4)}%2C${(coords.lng + 0.05).toFixed(4)}%2C${(coords.lat + 0.05).toFixed(4)}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`
 

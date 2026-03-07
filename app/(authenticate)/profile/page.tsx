@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
     User,
     Mail,
@@ -41,14 +42,27 @@ const ProfilePage = () => {
     const [profile, setProfile] = useState<ProfileData>(initialProfile);
     const [draft, setDraft] = useState<ProfileData>(initialProfile);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const previousAvatarUrlRef = useRef<string | null>(null);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const url = URL.createObjectURL(file);
+            if (previousAvatarUrlRef.current) {
+                URL.revokeObjectURL(previousAvatarUrlRef.current);
+            }
+            previousAvatarUrlRef.current = url;
             setAvatarUrl(url);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (previousAvatarUrlRef.current) {
+                URL.revokeObjectURL(previousAvatarUrlRef.current);
+            }
+        };
+    }, []);
 
     const handleEdit = () => {
         setDraft(profile);
@@ -119,7 +133,14 @@ const ProfilePage = () => {
                         <div className="relative shrink-0">
                             <div className="h-20 w-20 overflow-hidden rounded-2xl border border-border bg-secondary shadow-card">
                                 {avatarUrl ? (
-                                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                    <Image
+                                        src={avatarUrl}
+                                        alt="Avatar"
+                                        width={80}
+                                        height={80}
+                                        unoptimized
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center">
                                         <User className="h-8 w-8 text-muted-foreground" />

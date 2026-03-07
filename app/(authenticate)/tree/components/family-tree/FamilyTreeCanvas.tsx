@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import { FamilyMemberCard } from "./FamilyMemberCard";
-import { cn } from "../../lib/utils";
+import { cn } from "@/components/lib/utils";
 import { Heart, Plus, Minus } from "lucide-react";
 
 interface FamilyTreeCanvasProps {
@@ -11,7 +11,6 @@ interface FamilyTreeCanvasProps {
   selectedGeneration: number | null;
   searchQuery: string;
   onMemberClick: (member: FamilyMember) => void;
-  onMemberEdit: (member: FamilyMember) => void;
   selectedMemberId?: string;
   collapsedNodes: Set<string>;
   onToggleCollapse: (memberId: string) => void;
@@ -33,7 +32,6 @@ export const FamilyTreeCanvas = ({
   selectedGeneration,
   searchQuery,
   onMemberClick,
-  onMemberEdit,
   selectedMemberId,
   collapsedNodes,
   onToggleCollapse,
@@ -69,12 +67,6 @@ export const FamilyTreeCanvas = ({
 
     return spouses;
   }, [members]);
-
-  // Find first spouse (for backward compatibility)
-  const findSpouse = useCallback((member: FamilyMember): FamilyMember | null => {
-    const spouses = findSpouses(member);
-    return spouses.length > 0 ? spouses[0] : null;
-  }, [findSpouses]);
 
   // Get children of a parent (by parentId)
   const getChildren = useCallback((parentId: string): FamilyMember[] => {
@@ -125,11 +117,6 @@ export const FamilyTreeCanvas = ({
     return filtered;
   }, [members, selectedGeneration, getDescendantsOfCollapsed]);
 
-  // Get generations
-  const generations = useMemo(() => {
-    return Array.from(new Set(visibleMembers.map(m => m.generation))).sort((a, b) => a - b);
-  }, [visibleMembers]);
-
   // Get minimum generation for Y offset calculation
   const minGeneration = useMemo(() => {
     return Math.min(...members.map(m => m.generation));
@@ -148,41 +135,6 @@ export const FamilyTreeCanvas = ({
 
     // Track which members have been processed
     const processed = new Set<string>();
-
-    // Calculate subtree width for a family unit (including multiple spouses)
-    // When husband has multiple wives: wife1 - husband - wife2 layout
-    const getSubtreeWidth = (memberId: string): number => {
-      const member = members.find(m => m.id === memberId);
-      if (!member) return CARD_WIDTH;
-
-      const children = getChildren(memberId);
-      const spouses = findSpouses(member);
-
-      if (children.length === 0) {
-        // Width = member + all spouses (husband in middle layout)
-        const numSpouses = spouses.length;
-        if (numSpouses === 0) return CARD_WIDTH;
-        // All spouses + husband + gaps
-        return (numSpouses + 1) * CARD_WIDTH + numSpouses * COUPLE_GAP;
-      }
-
-      let totalWidth = 0;
-      const processedChildren = new Set<string>();
-
-      children.forEach(child => {
-        if (processedChildren.has(child.id)) return;
-        processedChildren.add(child.id);
-
-        const childSpouses = findSpouses(child);
-        childSpouses.forEach(sp => processedChildren.add(sp.id));
-
-        totalWidth += getSubtreeWidth(child.id) + FAMILY_GAP;
-      });
-
-      const numSpouses = spouses.length;
-      const spouseWidth = (numSpouses + 1) * CARD_WIDTH + numSpouses * COUPLE_GAP;
-      return Math.max(totalWidth - FAMILY_GAP, spouseWidth);
-    };
 
     // Position a family unit and its descendants (supports multiple spouses)
     const positionFamily = (memberId: string, startX: number, genY: number): number => {
@@ -244,7 +196,6 @@ export const FamilyTreeCanvas = ({
         const childSpouses = findSpouses(child);
         childSpouses.forEach(sp => processedChildren.add(sp.id));
 
-        const beforeX = childX;
         childX = positionFamily(child.id, childX, childGenY);
 
         // Calculate center of this child's family unit
@@ -349,7 +300,7 @@ export const FamilyTreeCanvas = ({
       const spouses = findSpouses(member);
 
       // Also get spouses' children
-      let allChildren = [...children];
+      const allChildren = [...children];
       spouses.forEach(spouse => {
         const spouseChildren = getChildren(spouse.id);
         spouseChildren.forEach(sc => {
@@ -369,7 +320,7 @@ export const FamilyTreeCanvas = ({
       // Calculate couple center (member + all spouses)
       let coupleX: number;
       if (spouses.length > 0) {
-        let leftX = memberPos.x;
+        const leftX = memberPos.x;
         let rightX = memberPos.x + CARD_WIDTH;
         spouses.forEach(spouse => {
           const spousePos = posMap.get(spouse.id);
@@ -428,7 +379,7 @@ export const FamilyTreeCanvas = ({
     });
 
     return { positions: posMap, connections: conns };
-  }, [visibleMembers, members, findSpouses, findSpouse, getChildren, hoveredMemberId, minGeneration]);
+  }, [visibleMembers, members, findSpouses, getChildren, hoveredMemberId, minGeneration]);
 
   // Render connections - offset by svgWidth/2 to convert from centered coords to SVG coords
   const svgWidth = useMemo(() => {
@@ -456,7 +407,7 @@ export const FamilyTreeCanvas = ({
       if (!memberPos) return;
 
       // Draw line from member to each spouse
-      spouses.forEach((spouse, spouseIndex) => {
+      spouses.forEach((spouse) => {
         if (!visibleMembers.find(m => m.id === spouse.id)) return;
 
         const key = [member.id, spouse.id].sort().join('-');
@@ -748,7 +699,9 @@ export const FamilyTreeCanvas = ({
             pos.y * zoom -
             (CARD_HEIGHT * zoom) / 2;
 
-          setPosition({ x: targetX, y: targetY });
+          requestAnimationFrame(() => {
+            setPosition({ x: targetX, y: targetY });
+          });
         }
       }
     }

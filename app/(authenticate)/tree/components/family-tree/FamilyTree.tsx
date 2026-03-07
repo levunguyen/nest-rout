@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import { initialFamilyData } from "../../data/familyTreeData";
 import { TreeControls } from "./TreeControls";
@@ -7,7 +7,7 @@ import { FamilyTreeCanvas } from "./FamilyTreeCanvas";
 import { GenerationList } from "./GenerationList";
 import { MemberDialog } from "./MemberDialog";
 import { MemberDetails } from "./MemberDetails";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 // Get all spouses of a member (supports multiple spouses)
@@ -87,15 +87,13 @@ export const FamilyTree = () => {
   const [hoveredMemberId, setHoveredMemberId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const next = sanitizeNoSingleParentChildren(members);
-    if (next.length !== members.length) {
-      setMembers(next);
-    }
-  }, [members]);
+  const sanitizedMembers = useMemo(
+    () => sanitizeNoSingleParentChildren(members),
+    [members]
+  );
 
-  const minGeneration = Math.min(...members.map((m) => m.generation));
-  const totalGenerations = Math.max(...members.map((m) => m.generation));
+  const minGeneration = Math.min(...sanitizedMembers.map((m) => m.generation));
+  const totalGenerations = Math.max(...sanitizedMembers.map((m) => m.generation));
 
   const handleZoomIn = useCallback(() => {
     setZoom((prev) => Math.min(prev + 0.1, 2));
@@ -111,20 +109,29 @@ export const FamilyTree = () => {
     setCollapsedNodes(new Set());
   }, []);
 
-  // Get all descendant IDs of a member
-  const getDescendantIds = useCallback((memberId: string): Set<string> => {
-    const descendants = new Set<string>();
-    const children = members.filter(m => m.parentId === memberId);
+  // Get all descendant IDs of a member using iterative traversal.
+  const getDescendantIds = useCallback(
+    (memberId: string): Set<string> => {
+      const descendants = new Set<string>();
+      const stack = [memberId];
 
-    children.forEach(child => {
-      descendants.add(child.id);
-      // Recursively get descendants
-      const childDescendants = getDescendantIds(child.id);
-      childDescendants.forEach(id => descendants.add(id));
-    });
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (!current) continue;
 
-    return descendants;
-  }, [members]);
+        const children = sanitizedMembers.filter((m) => m.parentId === current);
+        children.forEach((child) => {
+          if (!descendants.has(child.id)) {
+            descendants.add(child.id);
+            stack.push(child.id);
+          }
+        });
+      }
+
+      return descendants;
+    },
+    [sanitizedMembers]
+  );
 
   const handleToggleCollapse = useCallback((memberId: string) => {
     setCollapsedNodes(prev => {
@@ -192,8 +199,8 @@ export const FamilyTree = () => {
   }, []);
 
   // Get potential parents (members who can have children) - must have a spouse
-  const potentialParents = members.filter(
-    (m) => m.generation < 6 && hasSpouse(m, members)
+  const potentialParents = sanitizedMembers.filter(
+    (m) => m.generation < 6 && hasSpouse(m, sanitizedMembers)
   );
 
   return (
@@ -215,7 +222,7 @@ export const FamilyTree = () => {
           selectedGeneration={selectedGeneration}
           totalGenerations={totalGenerations}
           minGeneration={minGeneration}
-          memberCount={members.length}
+          memberCount={sanitizedMembers.length}
           searchQuery={searchQuery}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
@@ -234,12 +241,11 @@ export const FamilyTree = () => {
 
           <TabsContent value="tree">
             <FamilyTreeCanvas
-              members={members}
+              members={sanitizedMembers}
               zoom={zoom}
               selectedGeneration={selectedGeneration}
               searchQuery={searchQuery}
               onMemberClick={handleMemberClick}
-              onMemberEdit={handleEditMember}
               selectedMemberId={selectedMember?.id}
               collapsedNodes={collapsedNodes}
               onToggleCollapse={handleToggleCollapse}
@@ -256,7 +262,7 @@ export const FamilyTree = () => {
             ).map((gen) => (
               <GenerationList
                 key={gen}
-                members={members}
+                members={sanitizedMembers}
                 generation={gen}
                 onMemberClick={handleMemberClick}
                 onMemberEdit={handleEditMember}
@@ -269,13 +275,14 @@ export const FamilyTree = () => {
         {/* Member Details Dialog */}
         <MemberDetails
           member={selectedMember}
-          allMembers={members}
+          allMembers={sanitizedMembers}
           onEdit={handleEditMember}
           onClose={() => setSelectedMember(null)}
         />
 
         {/* Member Dialog */}
         <MemberDialog
+          key={isAddingNew ? "new-member" : editingMember?.id ?? "edit-member"}
           open={isDialogOpen}
           member={isAddingNew ? null : editingMember}
           parents={potentialParents}

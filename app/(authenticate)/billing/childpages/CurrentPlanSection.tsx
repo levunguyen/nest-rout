@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CreditCard, Receipt, Settings, Zap, AlertTriangle, X } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 import { toast } from "sonner";
 import UpgradeFlowModal from "./UpgradeFlowModal";
 

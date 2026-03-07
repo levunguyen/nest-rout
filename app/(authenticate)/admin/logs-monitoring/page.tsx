@@ -3,7 +3,7 @@
 import { useState } from "react"
 
 export default function LogsMonitoring() {
-    const [logs, setLogs] = useState([
+    const [logs] = useState([
         { id: 1, type: "login", user: "Nguyễn Văn A", action: "Đăng nhập", time: "2025-01-20 10:30", status: "success", ip: "192.168.1.1" },
         { id: 2, type: "edit", user: "Trần Thị B", action: "Sửa Person (ID: 123)", time: "2025-01-20 10:15", status: "success", ip: "192.168.1.2" },
         { id: 3, type: "delete", user: "Lê Văn C", action: "Xóa Media", time: "2025-01-20 09:45", status: "success", ip: "192.168.1.3" },

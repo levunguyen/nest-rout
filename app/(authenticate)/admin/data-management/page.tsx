@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { MdDelete, MdCheckCircle, MdError } from "react-icons/md"
+import { MdCheckCircle, MdError } from "react-icons/md"
 
 export default function DataManagement() {
-    const [records, setRecords] = useState([
+    const [records] = useState([
         { id: 1, type: "Person", name: "Nguyễn Văn A", status: "valid", issues: [] },
         { id: 2, type: "Person", name: "Trần Thị B", status: "warning", issues: ["Ngày sinh > ngày mất"] },
         { id: 3, type: "Family", name: "Nguyễn - Trần", status: "error", issues: ["Quan hệ không hợp lệ", "Cha mẹ trùng nhau"] },
@@ -16,7 +16,7 @@ export default function DataManagement() {
         { id: "deleted_2", type: "Media", name: "photo_old.jpg", deletedDate: "2025-01-18", deletedBy: "Nguyễn Văn A" },
     ])
 
-    const handleRestoreRecord = (id: string) => {
+    const handleRestoreRecord = () => {
         alert("Khôi phục thành công!")
     }
 
@@ -94,7 +94,7 @@ export default function DataManagement() {
                                     <p className="text-sm text-muted-foreground">Xóa bởi {record.deletedBy} vào {record.deletedDate}</p>
                                 </div>
                                 <button
-                                    onClick={() => handleRestoreRecord(record.id)}
+                                    onClick={handleRestoreRecord}
                                     className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                 >
                                     Khôi phục

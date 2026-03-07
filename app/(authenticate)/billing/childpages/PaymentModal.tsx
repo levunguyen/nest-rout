@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react";
 import { X, CreditCard, Lock, CheckCircle2 } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 import { toast } from "sonner";
 
 interface PaymentModalProps {

@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { MdArrowDropDown, MdAdd } from "react-icons/md"
-import { IoLogoFacebook } from "react-icons/io5"
-import Link from "next/link"
+import Image from "next/image"
 
 interface FamilyMember {
     id: number
@@ -137,16 +136,20 @@ export default function PeoplePage() {
                         >
                             {/* Background Image Container */}
                             <div className="relative h-48 bg-gray-200 overflow-hidden">
-                                <img
+                                <Image
                                     src={member.backgroundImage || "/placeholder.svg"}
                                     alt={member.name}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                    className="object-cover"
                                 />
                                 {/* Profile Image Overlay */}
                                 <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                                    <img
+                                    <Image
                                         src={member.profileImage || "/placeholder.svg"}
                                         alt={member.name}
+                                        width={96}
+                                        height={96}
                                         className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md"
                                     />
                                 </div>

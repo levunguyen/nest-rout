@@ -1,7 +1,7 @@
-import CardStat from "../../../components/CardStat";
-import EventList from "../../../components/EventList";
-import Anniversaries from "../../../components/Anniversaries";
-import HistorySection from "../../../components/HistorySection";
+import CardStat from "@/components/CardStat";
+import EventList from "@/components/EventList";
+import Anniversaries from "@/components/Anniversaries";
+import HistorySection from "@/components/HistorySection";
 
 
 export default function AuthenticationPage() {

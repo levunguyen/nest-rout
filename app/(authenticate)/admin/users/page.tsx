@@ -48,7 +48,6 @@ const mockUsers: User[] = [
 export default function UserManagement() {
     const [users, setUsers] = useState<User[]>(mockUsers)
     const [showModal, setShowModal] = useState(false)
-    const [selectedUser, setSelectedUser] = useState<User | null>(null)
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -89,7 +88,7 @@ export default function UserManagement() {
         )
     }
 
-    const handleResetPassword = (id: string) => {
+    const handleResetPassword = () => {
         alert("Mật khẩu đã được reset. Gửi email tới người dùng với mật khẩu tạm thời.")
     }
 
@@ -151,7 +150,9 @@ export default function UserManagement() {
                                 <label className="block text-sm font-medium text-foreground mb-1">Vai trò</label>
                                 <select
                                     value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, role: e.target.value as User["role"] })
+                                    }
                                     className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                                 >
                                     <option value="view">Chỉ xem</option>
@@ -224,7 +225,7 @@ export default function UserManagement() {
                                 <td className="px-6 py-4 text-muted-foreground text-sm">{user.familyTrees.join(", ") || "-"}</td>
                                 <td className="px-6 py-4 flex gap-2">
                                     <button
-                                        onClick={() => handleResetPassword(user.id)}
+                                        onClick={handleResetPassword}
                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Reset mật khẩu"
                                     >

@@ -1,5 +1,6 @@
 import { FaFacebook, FaTwitter, FaLinkedin, FaShareAlt } from "react-icons/fa"
 import type { IconType } from "react-icons"
+import Image from "next/image"
 
 interface BlogPost {
     id: number
@@ -92,9 +93,11 @@ function BlogCard({ post, variant }: { post: BlogPost; variant: "featured" | "gr
         return (
             <article className="space-y-6">
                 <div className="overflow-hidden rounded-lg">
-                    <img
+                    <Image
                         src={imageSrc || "/placeholder.svg"}
                         alt={post.title}
+                        width={1200}
+                        height={800}
                         className="h-80 w-full object-cover"
                     />
                 </div>
@@ -131,9 +134,11 @@ function BlogCard({ post, variant }: { post: BlogPost; variant: "featured" | "gr
     return (
         <article className="group overflow-hidden rounded-lg border border-border transition-all hover:shadow-lg">
             <div className="overflow-hidden">
-                <img
+                <Image
                     src={imageSrc || "/placeholder.svg"}
                     alt={post.title}
+                    width={900}
+                    height={600}
                     className="h-48 w-full object-cover transition-transform group-hover:scale-105"
                 />
             </div>

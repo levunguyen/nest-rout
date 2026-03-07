@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import {
   Dialog,
@@ -6,17 +6,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../../components/ui/dialog";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "@/components/ui/select";
 
 interface MemberDialogProps {
   open: boolean;
@@ -35,30 +35,12 @@ export const MemberDialog = ({
   onSave,
   onDelete,
 }: MemberDialogProps) => {
-  const [name, setName] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [deathYear, setDeathYear] = useState("");
-  const [gender, setGender] = useState<"male" | "female">("male");
-  const [parentId, setParentId] = useState<string>("");
-  const [generation, setGeneration] = useState(1);
-
-  useEffect(() => {
-    if (member) {
-      setName(member.name);
-      setBirthYear(member.birthYear.toString());
-      setDeathYear(member.deathYear?.toString() || "");
-      setGender(member.gender);
-      setParentId(member.parentId || "");
-      setGeneration(member.generation);
-    } else {
-      setName("");
-      setBirthYear("");
-      setDeathYear("");
-      setGender("male");
-      setParentId("");
-      setGeneration(1);
-    }
-  }, [member, open]);
+  const [name, setName] = useState(member?.name ?? "");
+  const [birthYear, setBirthYear] = useState(member?.birthYear?.toString() ?? "");
+  const [deathYear, setDeathYear] = useState(member?.deathYear?.toString() ?? "");
+  const [gender, setGender] = useState<"male" | "female">(member?.gender ?? "male");
+  const [parentId, setParentId] = useState<string>(member?.parentId ?? "");
+  const [generation, setGeneration] = useState(member?.generation ?? 1);
 
   const handleParentChange = (value: string) => {
     setParentId(value === "none" ? "" : value);

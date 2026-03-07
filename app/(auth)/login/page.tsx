@@ -28,7 +28,7 @@ export default function LoginPage() {
             } else {
                 setError("Please fill in all fields")
             }
-        } catch (err) {
+        } catch {
             setError("Something went wrong. Please try again.")
         } finally {
             setIsLoading(false)
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="text-center">
-                    <p className="text-amber-800/70 mb-2">Don't have an account?</p>
+                    <p className="text-amber-800/70 mb-2">Don&apos;t have an account?</p>
                     <Link href="/signup" className="text-amber-700 hover:text-amber-800 font-semibold transition">
                         Create one now
                     </Link>

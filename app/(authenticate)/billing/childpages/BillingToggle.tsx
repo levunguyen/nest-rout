@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 
 interface BillingToggleProps {
     isYearly: boolean;

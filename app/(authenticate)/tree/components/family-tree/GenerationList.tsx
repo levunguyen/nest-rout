@@ -1,6 +1,6 @@
 import { FamilyMember } from "../../types/FamilyTree";
 import { FamilyMemberCard } from "./FamilyMemberCard";
-import { cn } from "../../lib/utils";
+import { cn } from "@/components/lib/utils";
 
 interface GenerationListProps {
   members: FamilyMember[];

@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { MapPin, Calendar, Heart } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { FamilyMember } from "../data/familyMembers";
+import Image from "next/image";
 
 interface FamilyMemberCardProps {
     member: FamilyMember;
@@ -27,9 +28,11 @@ const FamilyMemberCard = ({ member, index, onClick }: FamilyMemberCardProps) => 
                     {/* Image Section */}
                     <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
                         {graveImages && graveImages.length > 0 ? (
-                            <img
+                            <Image
                                 src={graveImages[0]}
                                 alt={name}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 33vw"
                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                         ) : (

@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 
 const faqs = [
     {

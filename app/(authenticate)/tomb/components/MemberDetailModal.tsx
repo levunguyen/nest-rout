@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Navigation, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { FamilyMember } from "../data/familyMembers";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface MemberDetailModalProps {
     member: FamilyMember | null;
@@ -58,9 +59,11 @@ const MemberDetailModal = ({ member, isOpen, onClose }: MemberDetailModalProps) 
 
                         {/* Image Gallery */}
                         <div className="relative aspect-video w-full shrink-0 bg-secondary">
-                            <img
+                            <Image
                                 src={member.graveImages[currentImageIndex]}
                                 alt={`Mộ phần ${member.name}`}
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 1024px"
                                 className="h-full w-full object-cover"
                             />
 

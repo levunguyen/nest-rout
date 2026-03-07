@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { BiSolidCircle } from "react-icons/bi"
 import { MdAdd } from "react-icons/md"
+import Image from "next/image"
 
 interface CalendarEvent {
     id: string
@@ -349,9 +350,11 @@ export default function EventCalendarPage() {
                             <div className="space-y-3">
                                 {familyBirthdays.map((member) => (
                                     <div key={member.id} className="flex items-center gap-3">
-                                        <img
+                                        <Image
                                             src={member.image || "/placeholder.svg"}
                                             alt={member.name}
+                                            width={40}
+                                            height={40}
                                             className="w-10 h-10 rounded-full object-cover"
                                         />
                                         <div>

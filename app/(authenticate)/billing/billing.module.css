@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 222 47% 6%;
+        --foreground: 210 40% 96%;
+
+        --card: 222 44% 9%;
+        --card-foreground: 210 40% 96%;
+
+        --popover: 222 44% 9%;
+        --popover-foreground: 210 40% 96%;
+
+        --primary: 174 72% 50%;
+        --primary-foreground: 222 47% 6%;
+
+        --secondary: 222 30% 14%;
+        --secondary-foreground: 210 40% 90%;
+
+        --muted: 222 30% 14%;
+        --muted-foreground: 215 20% 55%;
+
+        --accent: 174 72% 50%;
+        --accent-foreground: 222 47% 6%;
+
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 222 30% 18%;
+        --input: 222 30% 18%;
+        --ring: 174 72% 50%;
+
+        --radius: 0.75rem;
+
+        --sidebar-background: 222 44% 9%;
+        --sidebar-foreground: 210 40% 96%;
+        --sidebar-primary: 174 72% 50%;
+        --sidebar-primary-foreground: 222 47% 6%;
+        --sidebar-accent: 222 30% 14%;
+        --sidebar-accent-foreground: 210 40% 96%;
+        --sidebar-border: 222 30% 18%;
+        --sidebar-ring: 174 72% 50%;
+
+        /* Custom tokens */
+        --card-highlight: 222 40% 12%;
+        --card-border-highlight: 174 72% 50%;
+        --gradient-primary: linear-gradient(135deg, hsl(174 72% 50%), hsl(190 80% 40%));
+        --gradient-card: linear-gradient(180deg, hsl(222 44% 11%), hsl(222 44% 8%));
+        --shadow-glow: 0 0 40px -10px hsl(174 72% 50% / 0.3);
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground antialiased;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+}
+
+@layer utilities {
+    .glass-card {
+        background: linear-gradient(180deg, hsl(222 44% 11%), hsl(222 44% 8%));
+        border: 1px solid hsl(222 30% 18%);
+    }
+
+    .glass-card-featured {
+        background: linear-gradient(180deg, hsl(222 40% 12%), hsl(222 44% 8%));
+        border: 1px solid hsl(174 72% 50% / 0.4);
+        box-shadow: 0 0 40px -10px hsl(174 72% 50% / 0.2);
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, hsl(174 72% 50%), hsl(190 80% 60%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .btn-primary-glow {
+        box-shadow: 0 0 20px -5px hsl(174 72% 50% / 0.4);
+    }
+
+    .btn-primary-glow:hover {
+        box-shadow: 0 0 30px -5px hsl(174 72% 50% / 0.6);
+    }
+}

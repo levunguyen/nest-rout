@@ -13,7 +13,7 @@ import {
     XCircle,
     Filter,
 } from "lucide-react";
-import { cn } from "../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 
 type InvoiceStatus = "paid" | "pending" | "failed";
 

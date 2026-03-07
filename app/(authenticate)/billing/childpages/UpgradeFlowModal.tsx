@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, CheckCircle2, Check, RefreshCw, RotateCcw, ArrowLeft, ArrowRight } from "lucide-react";
-import { cn } from "../../../../components/lib/utils";
+import { cn } from "@/components/lib/utils";
 import { toast } from "sonner";
 import PaymentStep from "./PaymentStep";
 

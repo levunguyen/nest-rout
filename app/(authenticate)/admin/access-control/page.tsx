@@ -3,7 +3,7 @@
 import { useState } from "react"
 
 export default function AccessControl() {
-    const [logs, setLogs] = useState([
+    const [logs] = useState([
         { id: 1, user: "Nguyễn Văn A", action: "Sửa Person (ID: 123)", time: "2025-01-20 10:30", field: "birthDate", oldValue: "1950-05-15", newValue: "1950-05-16" },
         { id: 2, user: "Trần Thị B", action: "Xóa Family (ID: 45)", time: "2025-01-20 09:15", field: "family", oldValue: "Nguyễn - Trần", newValue: "-" },
         { id: 3, user: "Lê Văn C", action: "Thêm Media", time: "2025-01-20 08:00", field: "photo", oldValue: "-", newValue: "photo_001.jpg" },

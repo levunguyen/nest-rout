@@ -42,7 +42,7 @@ export default function SignupPage() {
             } else {
                 setError("Please fill in all fields")
             }
-        } catch (err) {
+        } catch {
             setError("Something went wrong. Please try again.")
         } finally {
             setIsLoading(false)
