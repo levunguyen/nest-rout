@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import { initialFamilyData } from "../../data/familyTreeData";
 import { TreeControls } from "./TreeControls";
@@ -9,32 +9,7 @@ import { MemberDialog } from "./MemberDialog";
 import { MemberDetails } from "./MemberDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-
-// Get all spouses of a member (supports multiple spouses)
-const getSpouses = (member: FamilyMember, allMembers: FamilyMember[]): FamilyMember[] => {
-  const spouses: FamilyMember[] = [];
-
-  // Check if member has spouseIds
-  if (member.spouseIds && member.spouseIds.length > 0) {
-    member.spouseIds.forEach(spouseId => {
-      const spouse = allMembers.find(m => m.id === spouseId);
-      if (spouse) spouses.push(spouse);
-    });
-  }
-
-  // Also check if this member is listed as someone else's spouse
-  allMembers.forEach(m => {
-    if (m.spouseIds?.includes(member.id) && !spouses.find(s => s.id === m.id)) {
-      spouses.push(m);
-    }
-  });
-
-  return spouses;
-};
-
-const hasSpouse = (member: FamilyMember, allMembers: FamilyMember[]) => {
-  return getSpouses(member, allMembers).length > 0;
-};
+import { getSpouses, hasSpouse } from "../../utils/relations";
 
 const sanitizeNoSingleParentChildren = (allMembers: FamilyMember[]) => {
   const validParentIds = new Set(
@@ -86,14 +61,22 @@ export const FamilyTree = () => {
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [hoveredMemberId, setHoveredMemberId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const sanitizedMembers = useMemo(
     () => sanitizeNoSingleParentChildren(members),
     [members]
   );
 
-  const minGeneration = Math.min(...sanitizedMembers.map((m) => m.generation));
-  const totalGenerations = Math.max(...sanitizedMembers.map((m) => m.generation));
+  const { minGeneration, totalGenerations } = useMemo(() => {
+    if (sanitizedMembers.length === 0) {
+      return { minGeneration: 0, totalGenerations: 0 };
+    }
+    return {
+      minGeneration: Math.min(...sanitizedMembers.map((m) => m.generation)),
+      totalGenerations: Math.max(...sanitizedMembers.map((m) => m.generation)),
+    };
+  }, [sanitizedMembers]);
 
   const handleZoomIn = useCallback(() => {
     setZoom((prev) => Math.min(prev + 0.1, 2));
@@ -203,15 +186,42 @@ export const FamilyTree = () => {
     (m) => m.generation < 6 && hasSpouse(m, sanitizedMembers)
   );
 
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isFullscreen]);
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F8FAF8] p-6">
+      <div
+        className={[
+          "mx-auto max-w-7xl space-y-6",
+          isFullscreen
+            ? "fixed inset-0 z-50 max-w-none overflow-auto bg-[#F8FAF8] p-6"
+            : "",
+        ].join(" ")}
+      >
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-serif font-bold text-foreground">
+        <div className="space-y-2 text-center">
+          <h1 className="text-4xl font-serif font-bold text-[#0F172A]">
             Gia Phả Dòng Họ
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-[#475569]">
             Quản lý và xem thông tin các thành viên trong gia đình
           </p>
         </div>
@@ -230,6 +240,8 @@ export const FamilyTree = () => {
           onGenerationChange={setSelectedGeneration}
           onAddMember={handleAddMember}
           onSearchChange={setSearchQuery}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
         />
 
         {/* Main Content - Full Width */}
@@ -240,19 +252,28 @@ export const FamilyTree = () => {
           </TabsList>
 
           <TabsContent value="tree">
-            <FamilyTreeCanvas
-              members={sanitizedMembers}
-              zoom={zoom}
-              selectedGeneration={selectedGeneration}
-              searchQuery={searchQuery}
-              onMemberClick={handleMemberClick}
-              selectedMemberId={selectedMember?.id}
-              collapsedNodes={collapsedNodes}
-              onToggleCollapse={handleToggleCollapse}
-              hoveredMemberId={hoveredMemberId}
-              onMemberHover={setHoveredMemberId}
-              onZoomChange={setZoom}
-            />
+            {sanitizedMembers.length === 0 ? (
+              <div className="rounded-xl border border-[#E2E8F0] bg-white p-10 text-center">
+                <h3 className="text-lg font-semibold text-[#0F172A]">Chưa có dữ liệu gia phả</h3>
+                <p className="mt-2 text-sm text-[#475569]">
+                  Hãy thêm thành viên đầu tiên để bắt đầu xây dựng cây gia phả.
+                </p>
+              </div>
+            ) : (
+              <FamilyTreeCanvas
+                members={sanitizedMembers}
+                zoom={zoom}
+                selectedGeneration={selectedGeneration}
+                searchQuery={searchQuery}
+                onMemberClick={handleMemberClick}
+                selectedMemberId={selectedMember?.id}
+                collapsedNodes={collapsedNodes}
+                onToggleCollapse={handleToggleCollapse}
+                hoveredMemberId={hoveredMemberId}
+                onMemberHover={setHoveredMemberId}
+                onZoomChange={setZoom}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="list" className="space-y-4">

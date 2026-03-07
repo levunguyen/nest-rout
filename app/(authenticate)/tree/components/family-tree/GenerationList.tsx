@@ -1,6 +1,7 @@
 import { FamilyMember } from "../../types/FamilyTree";
 import { FamilyMemberCard } from "./FamilyMemberCard";
 import { cn } from "@/components/lib/utils";
+import { Pencil } from "lucide-react";
 
 interface GenerationListProps {
   members: FamilyMember[];
@@ -45,7 +46,8 @@ export const GenerationList = ({
   return (
     <div
       className={cn(
-        "p-6 rounded-xl bg-gradient-to-br",
+        "rounded-xl border border-[#E2E8F0] bg-white p-6 shadow-sm",
+        "bg-gradient-to-br",
         generationColors[getColorIndex(generation)]
       )}
     >
@@ -64,14 +66,26 @@ export const GenerationList = ({
         </span>
       </h3>
 
-      <div className="flex flex-wrap gap-6 justify-start">
+      <div className="flex flex-wrap justify-start gap-6">
         {generationMembers.map((member) => (
-          <div key={member.id} onClick={() => onMemberEdit(member)}>
+          <div key={member.id} className="group relative">
             <FamilyMemberCard
               member={member}
               isSelected={member.id === selectedMemberId}
               onClick={() => onMemberClick(member)}
             />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMemberEdit(member);
+              }}
+              className="absolute -right-2 -top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#16A34A] opacity-0 shadow-sm transition group-hover:opacity-100 hover:bg-[#DCFCE7]"
+              title="Chỉnh sửa thành viên"
+              aria-label={`Chỉnh sửa ${member.name}`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
           </div>
         ))}
       </div>

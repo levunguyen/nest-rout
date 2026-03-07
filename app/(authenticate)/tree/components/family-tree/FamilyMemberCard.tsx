@@ -74,10 +74,10 @@ export const FamilyMemberCard = ({
       {/* Card Container */}
       <div
         className={cn(
-          "flex flex-col items-center p-2 rounded-lg transition-all",
-          isSelected && "bg-primary/20 ring-2 ring-primary",
-          isHighlighted && "bg-orange-100",
-          isSearchMatch && "bg-green-100 ring-2 ring-green-500"
+          "flex flex-col items-center rounded-lg border border-[#E2E8F0] bg-white p-2 shadow-sm transition-all",
+          isSelected && "bg-[#DCFCE7] ring-2 ring-[#16A34A]",
+          isHighlighted && "bg-[#ECFDF5]",
+          isSearchMatch && "bg-[#DCFCE7] ring-2 ring-[#16A34A]"
         )}
       >
         {/* Avatar Circle */}
@@ -86,8 +86,8 @@ export const FamilyMemberCard = ({
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden",
               isMale
-                ? "border-blue-400 bg-blue-50"
-                : "border-amber-400 bg-amber-50"
+                ? "border-emerald-400 bg-emerald-50"
+                : "border-rose-300 bg-rose-50"
             )}
           >
             {member.imageUrl ? (
@@ -98,16 +98,16 @@ export const FamilyMemberCard = ({
                 className="w-full h-full object-cover"
               />
             ) : isMale ? (
-              <MaleIcon className="w-6 h-6 text-blue-500" />
+              <MaleIcon className="w-6 h-6 text-emerald-600" />
             ) : (
-              <FemaleIcon className="w-6 h-6 text-amber-500" />
+              <FemaleIcon className="w-6 h-6 text-rose-500" />
             )}
           </div>
           {/* Search match indicator */}
           {isSearchMatch && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
+            <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#16A34A]">
               <svg
-                className="w-2.5 h-2.5 text-accent-foreground"
+                className="h-2.5 w-2.5 text-white"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -124,19 +124,19 @@ export const FamilyMemberCard = ({
         </div>
 
         {/* Name */}
-        <h3 className="text-xs font-semibold text-center text-foreground mt-2 leading-tight line-clamp-2">
+        <h3 className="mt-2 line-clamp-2 text-center text-xs font-semibold leading-tight text-[#0F172A]">
           {member.name}
         </h3>
 
         {/* Generation */}
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="mt-0.5 text-[10px] text-[#64748B]">
           Đời {member.generation}
         </p>
 
         {/* Birth - Death Years */}
         <p className={cn(
-          "text-[10px] text-center mt-0.5",
-          isMale ? "text-blue-600" : "text-amber-600"
+          "mt-0.5 text-center text-[10px]",
+          isMale ? "text-emerald-700" : "text-rose-600"
         )}>
           {member.birthYear}
           {member.deathYear ? ` - ${member.deathYear}` : ""}

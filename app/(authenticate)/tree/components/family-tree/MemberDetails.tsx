@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { User, Calendar, Users, Edit2, Heart } from "lucide-react";
 import { cn } from "@/components/lib/utils";
+import { getSpouses } from "../../utils/relations";
 
 interface MemberDetailsProps {
   member: FamilyMember | null;
@@ -15,28 +16,6 @@ interface MemberDetailsProps {
   onEdit: (member: FamilyMember) => void;
   onClose: () => void;
 }
-
-// Get all spouses of a member (supports multiple spouses)
-const getSpouses = (member: FamilyMember, allMembers: FamilyMember[]): FamilyMember[] => {
-  const spouses: FamilyMember[] = [];
-
-  // Check if member has spouseIds
-  if (member.spouseIds && member.spouseIds.length > 0) {
-    member.spouseIds.forEach(spouseId => {
-      const spouse = allMembers.find(m => m.id === spouseId);
-      if (spouse) spouses.push(spouse);
-    });
-  }
-
-  // Also check if this member is listed as someone else's spouse
-  allMembers.forEach(m => {
-    if (m.spouseIds?.includes(member.id) && !spouses.find(s => s.id === m.id)) {
-      spouses.push(m);
-    }
-  });
-
-  return spouses;
-};
 
 export const MemberDetails = ({
   member,

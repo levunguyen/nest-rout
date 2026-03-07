@@ -4,6 +4,7 @@ import { FamilyMember } from "../../types/FamilyTree";
 import { FamilyMemberCard } from "./FamilyMemberCard";
 import { cn } from "@/components/lib/utils";
 import { Heart, Plus, Minus } from "lucide-react";
+import { buildChildrenMap, getSpouses } from "../../utils/relations";
 
 interface FamilyTreeCanvasProps {
   members: FamilyMember[];
@@ -46,33 +47,6 @@ export const FamilyTreeCanvas = ({
   const prevSelectedGeneration = useRef<number | null>(null);
   const prevSearchQuery = useRef<string>("");
 
-  // Find all spouses (supports multiple spouses)
-  const findSpouses = useCallback((member: FamilyMember): FamilyMember[] => {
-    const spouses: FamilyMember[] = [];
-
-    // Check if member has spouseIds
-    if (member.spouseIds && member.spouseIds.length > 0) {
-      member.spouseIds.forEach(spouseId => {
-        const spouse = members.find(m => m.id === spouseId);
-        if (spouse) spouses.push(spouse);
-      });
-    }
-
-    // Also check if this member is listed as someone else's spouse
-    members.forEach(m => {
-      if (m.spouseIds?.includes(member.id) && !spouses.find(s => s.id === m.id)) {
-        spouses.push(m);
-      }
-    });
-
-    return spouses;
-  }, [members]);
-
-  // Get children of a parent (by parentId)
-  const getChildren = useCallback((parentId: string): FamilyMember[] => {
-    return members.filter(m => m.parentId === parentId);
-  }, [members]);
-
   // Get all descendants of collapsed nodes
   const getDescendantsOfCollapsed = useCallback((): Set<string> => {
     const hiddenIds = new Set<string>();
@@ -82,7 +56,7 @@ export const FamilyTreeCanvas = ({
         if (m.parentId === parentId && !hiddenIds.has(m.id)) {
           hiddenIds.add(m.id);
           // Also add spouses
-          const spouses = findSpouses(m);
+          const spouses = getSpouses(m, members);
           spouses.forEach(spouse => hiddenIds.add(spouse.id));
           // Recursively add children
           addDescendants(m.id);
@@ -95,7 +69,7 @@ export const FamilyTreeCanvas = ({
     });
 
     return hiddenIds;
-  }, [members, collapsedNodes, findSpouses]);
+  }, [members, collapsedNodes]);
 
   // Filter visible members
   const visibleMembers = useMemo(() => {
@@ -117,10 +91,25 @@ export const FamilyTreeCanvas = ({
     return filtered;
   }, [members, selectedGeneration, getDescendantsOfCollapsed]);
 
+  const memberMap = useMemo(() => {
+    return new Map(visibleMembers.map((m) => [m.id, m]));
+  }, [visibleMembers]);
+
+  const childrenMap = useMemo(() => buildChildrenMap(visibleMembers), [visibleMembers]);
+
+  const findSpouses = useCallback((member: FamilyMember): FamilyMember[] => {
+    return getSpouses(member, visibleMembers);
+  }, [visibleMembers]);
+
+  const getChildren = useCallback((parentId: string): FamilyMember[] => {
+    return childrenMap.get(parentId) ?? [];
+  }, [childrenMap]);
+
   // Get minimum generation for Y offset calculation
   const minGeneration = useMemo(() => {
-    return Math.min(...members.map(m => m.generation));
-  }, [members]);
+    if (visibleMembers.length === 0) return 0;
+    return Math.min(...visibleMembers.map((m) => m.generation));
+  }, [visibleMembers]);
 
   // Calculate tree layout - recursive bottom-up approach with multiple spouse support
   const { positions, connections } = useMemo(() => {
@@ -138,7 +127,7 @@ export const FamilyTreeCanvas = ({
 
     // Position a family unit and its descendants (supports multiple spouses)
     const positionFamily = (memberId: string, startX: number, genY: number): number => {
-      const member = members.find(m => m.id === memberId);
+      const member = memberMap.get(memberId);
       if (!member || processed.has(memberId)) return startX;
 
       const spouses = findSpouses(member);
@@ -368,6 +357,10 @@ export const FamilyTreeCanvas = ({
       if (pos.x + CARD_WIDTH > maxX) maxX = pos.x + CARD_WIDTH;
     });
 
+    if (posMap.size === 0 || !Number.isFinite(minX) || !Number.isFinite(maxX)) {
+      return { positions: posMap, connections: conns };
+    }
+
     const offsetX = -(minX + maxX) / 2;
     posMap.forEach((pos, id) => {
       posMap.set(id, { x: pos.x + offsetX, y: pos.y });
@@ -379,7 +372,7 @@ export const FamilyTreeCanvas = ({
     });
 
     return { positions: posMap, connections: conns };
-  }, [visibleMembers, members, findSpouses, getChildren, hoveredMemberId, minGeneration]);
+  }, [visibleMembers, memberMap, findSpouses, getChildren, hoveredMemberId, minGeneration]);
 
   // Render connections - offset by svgWidth/2 to convert from centered coords to SVG coords
   const svgWidth = useMemo(() => {
@@ -458,7 +451,7 @@ export const FamilyTreeCanvas = ({
             width={16}
             height={16}
           >
-            <Heart className="w-4 h-4 text-blue-500 fill-blue-500" />
+            <Heart className="w-4 h-4 text-[#16A34A] fill-[#16A34A]" />
           </foreignObject>
         );
       });
@@ -467,7 +460,7 @@ export const FamilyTreeCanvas = ({
     // Draw parent-child connections
     connections.forEach((conn, idx) => {
       const { parentId, coupleX, coupleY, childPositions, isHighlighted } = conn;
-      const color = isHighlighted ? "#f97316" : "#9ca3af";
+      const color = isHighlighted ? "#16a34a" : "#9ca3af";
       const width = isHighlighted ? 2.5 : 2;
       const isCollapsed = collapsedNodes.has(parentId);
 
@@ -502,7 +495,7 @@ export const FamilyTreeCanvas = ({
               }}
               className={cn(
                 "w-5 h-5 rounded-full flex items-center justify-center",
-                "bg-primary text-primary-foreground shadow-md cursor-pointer",
+                "bg-[#16A34A] text-white shadow-md cursor-pointer",
                 "hover:scale-110 transition-transform",
                 "border-2 border-background"
               )}
@@ -713,7 +706,7 @@ export const FamilyTreeCanvas = ({
       ref={containerRef}
       onMouseDown={handleMouseDown}
       className={cn(
-        "relative w-full h-[calc(100vh-200px)] min-h-[600px] overflow-hidden rounded-lg border bg-card",
+        "relative w-full h-[calc(100vh-200px)] min-h-[600px] overflow-hidden rounded-xl border border-[#E2E8F0] bg-white",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
     >

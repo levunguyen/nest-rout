@@ -24,7 +24,10 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
   ({ className, activeClassName, pendingClassName: _pendingClassName, to, ...props }, ref) => {
     const pathname = usePathname();
     const href = normalizePath(to);
-    const isActive = href === pathname || (href !== "/" && pathname.startsWith(`/`));
+    const isActive =
+      href === "/"
+        ? pathname === "/"
+        : pathname === href || pathname.startsWith(`${href}/`);
     void _pendingClassName;
 
     return (

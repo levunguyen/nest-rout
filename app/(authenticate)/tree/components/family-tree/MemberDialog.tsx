@@ -53,10 +53,13 @@ export const MemberDialog = ({
   };
 
   const handleSave = () => {
+    const parsedBirthYear = parseInt(birthYear);
+    const parsedDeathYear = deathYear ? parseInt(deathYear) : undefined;
+
     onSave({
       name,
-      birthYear: parseInt(birthYear),
-      deathYear: deathYear ? parseInt(deathYear) : undefined,
+      birthYear: parsedBirthYear,
+      deathYear: parsedDeathYear,
       gender,
       parentId: parentId || undefined,
       generation,
@@ -64,7 +67,13 @@ export const MemberDialog = ({
     onClose();
   };
 
-  const isValid = name.trim() && birthYear && parseInt(birthYear) > 1800;
+  const parsedBirthYear = parseInt(birthYear);
+  const parsedDeathYear = deathYear ? parseInt(deathYear) : undefined;
+  const hasValidYears =
+    Number.isFinite(parsedBirthYear) &&
+    parsedBirthYear > 1800 &&
+    (!parsedDeathYear || parsedDeathYear >= parsedBirthYear);
+  const isValid = name.trim().length > 1 && hasValidYears;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -108,6 +117,11 @@ export const MemberDialog = ({
               />
             </div>
           </div>
+          {!hasValidYears && (
+            <p className="text-sm text-red-600">
+              Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
+            </p>
+          )}
 
           <div className="grid gap-2">
             <Label>Giới tính</Label>
