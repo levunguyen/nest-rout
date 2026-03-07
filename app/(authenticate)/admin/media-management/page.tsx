@@ -1,142 +1,103 @@
-"use client"
+"use client";
 
-import { MdDelete, MdWarning } from "react-icons/md"
+import { Eye, Trash2, TriangleAlert } from "lucide-react";
 
 export default function MediaManagement() {
-    const mediaFiles = [
-        { id: 1, name: "photo_001.jpg", size: "2.5 MB", type: "Ảnh cá nhân", usedBy: "Nguyễn Văn A", uploadedDate: "2025-01-15" },
-        { id: 2, name: "photo_002.jpg", size: "2.5 MB", type: "Ảnh cá nhân", usedBy: "Trần Thị B", uploadedDate: "2025-01-14", duplicate: true },
-        { id: 3, name: "birth_cert_001.pdf", size: "1.8 MB", type: "Giấy khai sinh", usedBy: "Lê Văn C", uploadedDate: "2025-01-10" },
-        { id: 4, name: "certificate.pdf", size: "1.8 MB", type: "Giấy khai sinh", usedBy: "Nguyễn Văn A", uploadedDate: "2025-01-09", duplicate: true },
-        { id: 5, name: "wedding_photo.jpg", size: "3.2 MB", type: "Ảnh hôn lễ", usedBy: "Trần - Nguyễn", uploadedDate: "2025-01-05" },
-    ]
+  const mediaFiles = [
+    { id: 1, name: "photo_001.jpg", size: "2.5 MB", type: "Ảnh cá nhân", usedBy: "Nguyễn Văn A", uploadedDate: "2025-01-15" },
+    { id: 2, name: "photo_002.jpg", size: "2.5 MB", type: "Ảnh cá nhân", usedBy: "Trần Thị B", uploadedDate: "2025-01-14", duplicate: true },
+    { id: 3, name: "birth_cert_001.pdf", size: "1.8 MB", type: "Giấy khai sinh", usedBy: "Lê Văn C", uploadedDate: "2025-01-10" },
+    { id: 4, name: "certificate.pdf", size: "1.8 MB", type: "Giấy khai sinh", usedBy: "Nguyễn Văn A", uploadedDate: "2025-01-09", duplicate: true },
+    { id: 5, name: "wedding_photo.jpg", size: "3.2 MB", type: "Ảnh hôn lễ", usedBy: "Trần - Nguyễn", uploadedDate: "2025-01-05" },
+  ];
 
-    const storageStats = {
-        used: 450,
-        total: 500,
-        percentUsed: 90,
-    }
+  const storageStats = { used: 450, total: 500, percentUsed: 90 };
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Quản lý media & tài liệu</h1>
-                <p className="text-muted-foreground">Quản lý ảnh, tài liệu, và giới hạn dung lượng</p>
-            </div>
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+        <h1 className="text-3xl font-bold text-[#0F172A]">Quản lý media & tài liệu</h1>
+        <p className="mt-2 text-sm text-[#475569]">Kiểm soát dung lượng, file trùng lặp và chất lượng kho dữ liệu media.</p>
+      </section>
 
-            {/* Storage Usage */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Dung lượng lưu trữ</h3>
-                <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                        <span className="text-foreground font-medium">Sử dụng: {storageStats.used} GB / {storageStats.total} GB</span>
-                        <span className={`font-bold ${storageStats.percentUsed > 80 ? "text-red-600" : "text-green-600"}`}>
-                            {storageStats.percentUsed}%
-                        </span>
-                    </div>
-                    <div className="w-full bg-border rounded-full h-4">
-                        <div
-                            className={`h-4 rounded-full transition-all ${storageStats.percentUsed > 80 ? "bg-red-600" : "bg-green-600"}`}
-                            style={{ width: `${storageStats.percentUsed}%` }}
-                        />
-                    </div>
-                    {storageStats.percentUsed > 80 && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                            <MdWarning className="text-red-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-red-800">Dung lượng sắp đầy! Hãy xóa các file không cần thiết hoặc nâng cấp gói lưu trữ.</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Upload Settings */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Cài đặt upload</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Giới hạn kích thước file (MB)</label>
-                        <input type="number" defaultValue="50" className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Định dạng file được phép</label>
-                        <input
-                            type="text"
-                            defaultValue="jpg, jpeg, png, pdf, doc, docx"
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                    </div>
-                    <button className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium">
-                        Lưu cài đặt
-                    </button>
-                </div>
-            </div>
-
-            {/* Duplicate Files */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">File trùng lặp</h3>
-                <div className="space-y-2">
-                    {mediaFiles
-                        .filter((f) => f.duplicate)
-                        .map((file) => (
-                            <div key={file.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary transition-colors">
-                                <div>
-                                    <p className="font-semibold text-foreground">{file.name}</p>
-                                    <p className="text-sm text-muted-foreground">{file.size} • {file.type}</p>
-                                </div>
-                                <button
-                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Xóa"
-                                >
-                                    <MdDelete size={18} />
-                                </button>
-                            </div>
-                        ))}
-                </div>
-            </div>
-
-            {/* All Media Files */}
-            <div className="bg-white rounded-lg border border-border shadow-sm overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-secondary border-b border-border">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Tên file</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Loại</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Kích thước</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Được sử dụng bởi</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Ngày upload</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {mediaFiles.map((file) => (
-                            <tr key={file.id} className="border-b border-border hover:bg-secondary transition-colors">
-                                <td className="px-6 py-4 font-medium text-foreground">
-                                    {file.name}
-                                    {file.duplicate && <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Trùng</span>}
-                                </td>
-                                <td className="px-6 py-4 text-muted-foreground">{file.type}</td>
-                                <td className="px-6 py-4 text-muted-foreground">{file.size}</td>
-                                <td className="px-6 py-4 text-muted-foreground">{file.usedBy}</td>
-                                <td className="px-6 py-4 text-muted-foreground">{file.uploadedDate}</td>
-                                <td className="px-6 py-4 flex gap-2">
-                                    <button
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Xem"
-                                    >
-                                        👁
-                                    </button>
-                                    <button
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Xóa"
-                                    >
-                                        <MdDelete size={18} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Dung lượng lưu trữ</h2>
+          <span className={`text-sm font-semibold ${storageStats.percentUsed > 80 ? "text-[#B91C1C]" : "text-[#166534]"}`}>
+            {storageStats.used} / {storageStats.total} GB
+          </span>
         </div>
-    )
+        <div className="mt-3 h-3 w-full rounded-full bg-[#E2E8F0]">
+          <div className={`h-3 rounded-full ${storageStats.percentUsed > 80 ? "bg-[#EF4444]" : "bg-[#16A34A]"}`} style={{ width: `${storageStats.percentUsed}%` }} />
+        </div>
+        {storageStats.percentUsed > 80 && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] p-3">
+            <TriangleAlert className="mt-0.5 h-4 w-4 text-[#B91C1C]" />
+            <p className="text-sm text-[#991B1B]">Dung lượng sắp đầy. Hãy dọn dẹp file trùng hoặc sao lưu dữ liệu cũ.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">Cài đặt upload</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <input type="number" defaultValue="50" className="rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+          <input type="text" defaultValue="jpg, jpeg, png, pdf, doc, docx" className="rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">File trùng lặp</h2>
+        <div className="mt-3 space-y-2">
+          {mediaFiles
+            .filter((f) => f.duplicate)
+            .map((file) => (
+              <div key={file.id} className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                <div>
+                  <p className="font-medium text-[#0F172A]">{file.name}</p>
+                  <p className="text-xs text-[#64748B]">{file.size} • {file.type}</p>
+                </div>
+                <button className="rounded-lg p-2 text-[#B91C1C] hover:bg-[#FEF2F2]">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-[#E2E8F0] bg-[#F8FAF8]">
+              <tr>
+                {["Tên file", "Loại", "Kích thước", "Được sử dụng bởi", "Ngày upload", "Hành động"].map((head) => (
+                  <th key={head} className="px-4 py-3 text-left text-sm font-semibold text-[#0F172A]">{head}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {mediaFiles.map((file) => (
+                <tr key={file.id} className="border-b border-[#E2E8F0] last:border-b-0">
+                  <td className="px-4 py-3 font-medium text-[#0F172A]">
+                    {file.name}
+                    {file.duplicate ? <span className="ml-2 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] text-[#92400E]">Trùng</span> : null}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[#475569]">{file.type}</td>
+                  <td className="px-4 py-3 text-sm text-[#475569]">{file.size}</td>
+                  <td className="px-4 py-3 text-sm text-[#475569]">{file.usedBy}</td>
+                  <td className="px-4 py-3 text-sm text-[#475569]">{file.uploadedDate}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button className="rounded-lg p-2 text-[#166534] hover:bg-[#DCFCE7]"><Eye className="h-4 w-4" /></button>
+                      <button className="rounded-lg p-2 text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
 }

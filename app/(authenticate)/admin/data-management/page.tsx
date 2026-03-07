@@ -1,125 +1,112 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MdCheckCircle, MdError } from "react-icons/md"
+import { CheckCircle2, AlertTriangle, CircleX } from "lucide-react";
 
 export default function DataManagement() {
-    const [records] = useState([
-        { id: 1, type: "Person", name: "Nguyễn Văn A", status: "valid", issues: [] },
-        { id: 2, type: "Person", name: "Trần Thị B", status: "warning", issues: ["Ngày sinh > ngày mất"] },
-        { id: 3, type: "Family", name: "Nguyễn - Trần", status: "error", issues: ["Quan hệ không hợp lệ", "Cha mẹ trùng nhau"] },
-        { id: 4, type: "Event", name: "Hôn nhân 2020", status: "valid", issues: [] },
-    ])
+  const records = [
+    { id: 1, type: "Person", name: "Nguyễn Văn A", status: "valid", issues: [] },
+    { id: 2, type: "Person", name: "Trần Thị B", status: "warning", issues: ["Ngày sinh > ngày mất"] },
+    { id: 3, type: "Family", name: "Nguyễn - Trần", status: "error", issues: ["Quan hệ không hợp lệ", "Cha mẹ trùng nhau"] },
+    { id: 4, type: "Event", name: "Hôn nhân 2020", status: "valid", issues: [] },
+  ] as const;
 
-    const [deletedRecords] = useState([
-        { id: "deleted_1", type: "Person", name: "Lê Văn C", deletedDate: "2025-01-19", deletedBy: "Admin" },
-        { id: "deleted_2", type: "Media", name: "photo_old.jpg", deletedDate: "2025-01-18", deletedBy: "Nguyễn Văn A" },
-    ])
+  const deletedRecords = [
+    { id: "deleted_1", type: "Person", name: "Lê Văn C", deletedDate: "2025-01-19", deletedBy: "Admin" },
+    { id: "deleted_2", type: "Media", name: "photo_old.jpg", deletedDate: "2025-01-18", deletedBy: "Nguyễn Văn A" },
+  ];
 
-    const handleRestoreRecord = () => {
-        alert("Khôi phục thành công!")
-    }
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+        <h1 className="text-3xl font-bold text-[#0F172A]">Quản lý dữ liệu phả hệ</h1>
+        <p className="mt-2 text-sm text-[#475569]">Kiểm tra lỗi dữ liệu, chuẩn hóa và phục hồi bản ghi đã xóa.</p>
+      </section>
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Quản lý dữ liệu phả hệ</h1>
-                <p className="text-muted-foreground">Kiểm tra lỗi, gộp bản ghi, và quản lý dữ liệu</p>
-            </div>
-
-            {/* Data Quality Check */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Kiểm tra chất lượng dữ liệu</h3>
-                <button className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium mb-4">
-                    Quét lỗi dữ liệu
-                </button>
-
-                <div className="space-y-2">
-                    {records.map((record) => (
-                        <div key={record.id} className="p-4 border border-border rounded-lg hover:bg-secondary transition-colors">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-3">
-                                    {record.status === "valid" ? (
-                                        <MdCheckCircle className="text-green-600 text-xl mt-1" />
-                                    ) : record.status === "warning" ? (
-                                        <span className="text-amber-600 text-xl mt-1">⚠</span>
-                                    ) : (
-                                        <MdError className="text-red-600 text-xl mt-1" />
-                                    )}
-                                    <div>
-                                        <p className="font-semibold text-foreground">{record.type}: {record.name}</p>
-                                        {record.issues.length > 0 && (
-                                            <ul className="text-sm text-red-600 mt-1">
-                                                {record.issues.map((issue, idx) => (
-                                                    <li key={idx}>- {issue}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${record.status === "valid"
-                                        ? "bg-green-100 text-green-700"
-                                        : record.status === "warning"
-                                            ? "bg-amber-100 text-amber-700"
-                                            : "bg-red-100 text-red-700"
-                                    }`}>
-                                    {record.status === "valid" ? "Hợp lệ" : record.status === "warning" ? "Cảnh báo" : "Lỗi"}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Merge Duplicates */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Gộp bản ghi trùng lặp</h3>
-                <p className="text-muted-foreground mb-4">Tìm và gộp các bản ghi trùng lặp</p>
-                <button className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium">
-                    Tìm bản ghi trùng
-                </button>
-            </div>
-
-            {/* Restore Deleted Records */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Phục hồi dữ liệu đã xóa</h3>
-                <div className="space-y-2">
-                    {deletedRecords.length === 0 ? (
-                        <p className="text-muted-foreground">Không có dữ liệu đã xóa</p>
-                    ) : (
-                        deletedRecords.map((record) => (
-                            <div key={record.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary transition-colors">
-                                <div>
-                                    <p className="font-semibold text-foreground">{record.type}: {record.name}</p>
-                                    <p className="text-sm text-muted-foreground">Xóa bởi {record.deletedBy} vào {record.deletedDate}</p>
-                                </div>
-                                <button
-                                    onClick={handleRestoreRecord}
-                                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                >
-                                    Khôi phục
-                                </button>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Standardize Data */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Chuẩn hóa dữ liệu</h3>
-                <div className="space-y-3">
-                    <button className="w-full px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors font-medium text-foreground">
-                        Chuẩn hóa tên địa danh
-                    </button>
-                    <button className="w-full px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors font-medium text-foreground">
-                        Chuẩn hóa tên gọi
-                    </button>
-                    <button className="w-full px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors font-medium text-foreground">
-                        Chuẩn hóa định dạng ngày
-                    </button>
-                </div>
-            </div>
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Kiểm tra chất lượng dữ liệu</h2>
+          <button className="rounded-lg bg-[#16A34A] px-3 py-2 text-sm font-semibold text-white hover:bg-[#15803D]">Quét lỗi dữ liệu</button>
         </div>
-    )
+        <div className="space-y-2">
+          {records.map((record) => (
+            <article key={record.id} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  {record.status === "valid" ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-[#16A34A]" />
+                  ) : record.status === "warning" ? (
+                    <AlertTriangle className="mt-0.5 h-4 w-4 text-[#B45309]" />
+                  ) : (
+                    <CircleX className="mt-0.5 h-4 w-4 text-[#B91C1C]" />
+                  )}
+                  <div>
+                    <p className="font-medium text-[#0F172A]">{record.type}: {record.name}</p>
+                    {record.issues.length > 0 && (
+                      <ul className="mt-1 text-xs text-[#B91C1C]">
+                        {record.issues.map((issue) => (
+                          <li key={issue}>- {issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    record.status === "valid"
+                      ? "bg-[#DCFCE7] text-[#166534]"
+                      : record.status === "warning"
+                        ? "bg-[#FEF3C7] text-[#92400E]"
+                        : "bg-[#FEE2E2] text-[#991B1B]"
+                  }`}
+                >
+                  {record.status === "valid" ? "Hợp lệ" : record.status === "warning" ? "Cảnh báo" : "Lỗi"}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Gộp bản ghi trùng lặp</h2>
+          <p className="mt-2 text-sm text-[#475569]">Tìm và gộp tự động các hồ sơ có khả năng trùng thông tin.</p>
+          <button className="mt-4 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[#0F172A] hover:bg-[#F8FAF8]">
+            Tìm bản ghi trùng
+          </button>
+        </article>
+
+        <article className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Chuẩn hóa dữ liệu</h2>
+          <div className="mt-3 space-y-2">
+            {["Chuẩn hóa tên địa danh", "Chuẩn hóa tên gọi", "Chuẩn hóa định dạng ngày"].map((task) => (
+              <button
+                key={task}
+                className="w-full rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-2 text-left text-sm text-[#334155] hover:bg-white"
+              >
+                {task}
+              </button>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">Phục hồi dữ liệu đã xóa</h2>
+        <div className="mt-3 space-y-2">
+          {deletedRecords.map((record) => (
+            <div key={record.id} className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+              <div>
+                <p className="font-medium text-[#0F172A]">{record.type}: {record.name}</p>
+                <p className="text-xs text-[#64748B]">
+                  Xóa bởi {record.deletedBy} vào {record.deletedDate}
+                </p>
+              </div>
+              <button className="rounded-lg bg-[#16A34A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#15803D]">Khôi phục</button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }

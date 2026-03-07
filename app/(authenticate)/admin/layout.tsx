@@ -1,74 +1,93 @@
-"use client"
+"use client";
 
-import React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { MdDashboard, MdPeople, MdSecurity, MdDataUsage, MdPermMedia, MdBackup, MdSettings, MdHistory } from "react-icons/md"
+import type React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  ActivitySquare,
+  Database,
+  FolderArchive,
+  LayoutDashboard,
+  LockKeyhole,
+  LogOut,
+  Logs,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 
 interface NavItem {
-    label: string
-    href: string
-    icon: React.ReactNode
+  label: string;
+  href: string;
+  icon: React.ReactNode;
 }
 
 const navItems: NavItem[] = [
-    { label: "Bảng điều khiển", href: "/admin/dashboard", icon: <MdDashboard /> },
-    { label: "Quản lý người dùng", href: "/admin/users", icon: <MdPeople /> },
-    { label: "Kiểm soát truy cập", href: "/admin/access-control", icon: <MdSecurity /> },
-    { label: "Quản lý dữ liệu", href: "/admin/data-management", icon: <MdDataUsage /> },
-    { label: "Quản lý media", href: "/admin/media-management", icon: <MdPermMedia /> },
-    { label: "Sao lưu & Phục hồi", href: "/admin/backup-restore", icon: <MdBackup /> },
-    { label: "Cấu hình hệ thống", href: "/admin/system-config", icon: <MdSettings /> },
-    { label: "Nhật ký & Giám sát", href: "/admin/logs-monitoring", icon: <MdHistory /> },
-]
+  { label: "Bảng điều khiển", href: "/admin/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { label: "Người dùng", href: "/admin/users", icon: <Users className="h-4 w-4" /> },
+  { label: "Kiểm soát truy cập", href: "/admin/access-control", icon: <LockKeyhole className="h-4 w-4" /> },
+  { label: "Dữ liệu", href: "/admin/data-management", icon: <Database className="h-4 w-4" /> },
+  { label: "Media", href: "/admin/media-management", icon: <FolderArchive className="h-4 w-4" /> },
+  { label: "Sao lưu", href: "/admin/backup-restore", icon: <ShieldCheck className="h-4 w-4" /> },
+  { label: "Cấu hình", href: "/admin/system-config", icon: <Settings className="h-4 w-4" /> },
+  { label: "Nhật ký", href: "/admin/logs-monitoring", icon: <Logs className="h-4 w-4" /> },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname()
+  const pathname = usePathname();
 
-    return (
-        <div className="flex h-screen bg-background">
-            {/* Sidebar */}
-            <div className="w-64 bg-white border-r border-border shadow-lg overflow-y-auto">
-                <div className="p-6 border-b border-border">
-                    <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-                </div>
-
-                <nav className="space-y-1 p-4">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname === item.href
-                                    ? "bg-accent text-accent-foreground font-semibold"
-                                    : "text-foreground hover:bg-secondary"
-                                }`}
-                        >
-                            <span className="text-xl">{item.icon}</span>
-                            <span>{item.label}</span>
-                        </Link>
-                    ))}
-                </nav>
+  return (
+    <div className="min-h-screen bg-[#F8FAF8]">
+      <div className="mx-auto grid max-w-[1600px] gap-0 lg:grid-cols-[260px_1fr]">
+        <aside className="sticky top-0 hidden h-screen border-r border-[#E2E8F0] bg-white lg:block">
+          <div className="flex h-full flex-col p-4">
+            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAF8] p-4">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-medium text-[#166534]">
+                <ActivitySquare className="h-3.5 w-3.5" />
+                Admin workspace
+              </div>
+              <h1 className="mt-3 text-xl font-bold text-[#0F172A]">Quản trị hệ thống</h1>
+              <p className="mt-1 text-xs text-[#64748B]">Family Heritage Platform</p>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <div className="bg-white border-b border-border p-6 shadow-sm">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-foreground">Quản trị hệ thống</h2>
-                        <button className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium">
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
+            <nav className="mt-4 space-y-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
+                      isActive
+                        ? "bg-[#DCFCE7] text-[#166534]"
+                        : "text-[#334155] hover:bg-[#F8FAF8] hover:text-[#0F172A]",
+                    ].join(" ")}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-auto">
-                    <div className="p-6">
-                        {children}
-                    </div>
-                </div>
-            </div>
+            <button
+              type="button"
+              className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[#0F172A] hover:bg-[#F8FAF8]"
+            >
+              <LogOut className="h-4 w-4 text-[#16A34A]" />
+              Đăng xuất
+            </button>
+          </div>
+        </aside>
+
+        <div className="min-w-0">
+          <header className="sticky top-0 z-20 border-b border-[#E2E8F0] bg-white/95 px-4 py-4 backdrop-blur md:px-6">
+            <h2 className="text-lg font-semibold text-[#0F172A]">Admin Center</h2>
+          </header>
+          <main className="px-4 py-5 md:px-6 md:py-6">{children}</main>
         </div>
-    )
+      </div>
+    </div>
+  );
 }

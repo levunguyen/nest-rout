@@ -1,185 +1,94 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 export default function SystemConfiguration() {
-    const [settings, setSettings] = useState({
-        language: "vi",
-        dateFormat: "DD/MM/YYYY",
-        placeStandard: "vietnam",
-        databaseHost: "localhost",
-        databasePort: "5432",
-        storagePath: "/data/storage",
-        maxUploadSize: "50",
-        enableReports: true,
-        enableCharts: true,
-        enableMaps: true,
-    })
+  const [settings, setSettings] = useState({
+    language: "vi",
+    dateFormat: "DD/MM/YYYY",
+    placeStandard: "vietnam",
+    databaseHost: "localhost",
+    databasePort: "5432",
+    storagePath: "/data/storage",
+    maxUploadSize: "50",
+    enableReports: true,
+    enableCharts: true,
+    enableMaps: true,
+  });
 
-    const handleSave = () => {
-        alert("Cài đặt đã được lưu thành công!")
-    }
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+        <h1 className="text-3xl font-bold text-[#0F172A]">Cấu hình hệ thống</h1>
+        <p className="mt-2 text-sm text-[#475569]">Quản lý cài đặt ngôn ngữ, database, lưu trữ và module hệ thống.</p>
+      </section>
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Cấu hình hệ thống</h1>
-                <p className="text-muted-foreground">Quản lý cài đặt ngôn ngữ, định dạng, và cơ sở dữ liệu</p>
-            </div>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <article className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Cài đặt chung</h2>
+          <div className="mt-3 space-y-3">
+            <select value={settings.language} onChange={(e) => setSettings((s) => ({ ...s, language: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm">
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+            </select>
+            <select value={settings.dateFormat} onChange={(e) => setSettings((s) => ({ ...s, dateFormat: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm">
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+            <select value={settings.placeStandard} onChange={(e) => setSettings((s) => ({ ...s, placeStandard: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm">
+              <option value="vietnam">Việt Nam</option>
+              <option value="international">Quốc tế</option>
+            </select>
+          </div>
+        </article>
 
-            {/* General Settings */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Cài đặt chung</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Ngôn ngữ</label>
-                        <select
-                            value={settings.language}
-                            onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        >
-                            <option value="vi">Tiếng Việt</option>
-                            <option value="en">English</option>
-                            <option value="fr">Français</option>
-                            <option value="de">Deutsch</option>
-                        </select>
-                    </div>
+        <article className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#0F172A]">Database & Storage</h2>
+          <div className="mt-3 space-y-3">
+            <input value={settings.databaseHost} onChange={(e) => setSettings((s) => ({ ...s, databaseHost: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+            <input value={settings.databasePort} onChange={(e) => setSettings((s) => ({ ...s, databasePort: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+            <input value={settings.storagePath} onChange={(e) => setSettings((s) => ({ ...s, storagePath: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+            <input type="number" value={settings.maxUploadSize} onChange={(e) => setSettings((s) => ({ ...s, maxUploadSize: e.target.value }))} className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm" />
+          </div>
+        </article>
+      </section>
 
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Định dạng ngày tháng</label>
-                        <select
-                            value={settings.dateFormat}
-                            onChange={(e) => setSettings({ ...settings, dateFormat: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        >
-                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Chuẩn địa danh</label>
-                        <select
-                            value={settings.placeStandard}
-                            onChange={(e) => setSettings({ ...settings, placeStandard: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        >
-                            <option value="vietnam">Việt Nam</option>
-                            <option value="international">Quốc tế</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Database Settings */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Cấu hình Database</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Host</label>
-                        <input
-                            type="text"
-                            value={settings.databaseHost}
-                            onChange={(e) => setSettings({ ...settings, databaseHost: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Port</label>
-                        <input
-                            type="text"
-                            value={settings.databasePort}
-                            onChange={(e) => setSettings({ ...settings, databasePort: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Đường dẫn lưu trữ</label>
-                        <input
-                            type="text"
-                            value={settings.storagePath}
-                            onChange={(e) => setSettings({ ...settings, storagePath: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Giới hạn kích thước upload (MB)</label>
-                        <input
-                            type="number"
-                            value={settings.maxUploadSize}
-                            onChange={(e) => setSettings({ ...settings, maxUploadSize: e.target.value })}
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Feature Settings */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Bật / tắt module</h3>
-                <div className="space-y-3">
-                    <label className="flex items-center gap-3 p-3 hover:bg-secondary rounded-lg cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={settings.enableReports}
-                            onChange={(e) => setSettings({ ...settings, enableReports: e.target.checked })}
-                            className="w-4 h-4"
-                        />
-                        <span className="text-foreground">Bật Reports</span>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 hover:bg-secondary rounded-lg cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={settings.enableCharts}
-                            onChange={(e) => setSettings({ ...settings, enableCharts: e.target.checked })}
-                            className="w-4 h-4"
-                        />
-                        <span className="text-foreground">Bật Charts</span>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 hover:bg-secondary rounded-lg cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={settings.enableMaps}
-                            onChange={(e) => setSettings({ ...settings, enableMaps: e.target.checked })}
-                            className="w-4 h-4"
-                        />
-                        <span className="text-foreground">Bật Maps</span>
-                    </label>
-                </div>
-            </div>
-
-            {/* Server Status */}
-            <div className="bg-white rounded-lg p-6 border border-border shadow-sm">
-                <h3 className="text-xl font-bold text-foreground mb-4">Trạng thái máy chủ</h3>
-                <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                        <span className="text-foreground">Database</span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Kết nối</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                        <span className="text-foreground">Storage</span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Bình thường</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                        <span className="text-foreground">API</span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Hoạt động</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Save Button */}
-            <button
-                onClick={handleSave}
-                className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium w-full"
-            >
-                Lưu cài đặt
-            </button>
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">Bật / tắt module</h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {[
+            { key: "enableReports", label: "Reports" },
+            { key: "enableCharts", label: "Charts" },
+            { key: "enableMaps", label: "Maps" },
+          ].map((item) => (
+            <label key={item.key} className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={settings[item.key as keyof typeof settings] as boolean}
+                onChange={(e) => setSettings((s) => ({ ...s, [item.key]: e.target.checked }))}
+              />
+              {item.label}
+            </label>
+          ))}
         </div>
-    )
+      </section>
+
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">Trạng thái máy chủ</h2>
+        <div className="mt-3 space-y-2">
+          {["Database", "Storage", "API"].map((service) => (
+            <div key={service} className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+              <span className="text-sm text-[#334155]">{service}</span>
+              <span className="rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-medium text-[#166534]">Hoạt động</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <button className="w-full rounded-lg bg-[#16A34A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#15803D]">
+        Lưu cấu hình
+      </button>
+    </div>
+  );
 }
