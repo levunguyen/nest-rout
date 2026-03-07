@@ -1,223 +1,138 @@
-import { FaFacebook, FaTwitter, FaLinkedin, FaShareAlt } from "react-icons/fa"
-import type { IconType } from "react-icons"
-import Image from "next/image"
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, CalendarDays, Clock3 } from "lucide-react";
+import { blogPosts } from "./data";
 
-interface BlogPost {
-    id: number
-    title: string
-    author: string
-    date: string
-    excerpt: string
-    image: string
-    category: string
-    featured?: boolean
-}
+function LeadStory({ postId }: { postId: string }) {
+  const post = blogPosts.find((p) => p.id === postId);
+  if (!post) return null;
 
-const blogPosts: BlogPost[] = [
-    {
-        id: 1,
-        title: "Maecenas Tincidunt Eget Libero Massa Vitae",
-        author: "JOANNA WELLUCK",
-        date: "DECEMBER 9, 2018",
-        category: "AENEAN ELEIFEND. ALIQUAM",
-        excerpt:
-            "Aenean eleifend ante maecenas pellenter montes lorem et pede da dolar purus a amar dapibus luctus. Proin eget tortor risus cras ultricies ligula sed vulputate.",
-        image: "/images/woman-in-sunglasses-and-scarf-travel.png",
-        featured: true,
-    },
-    {
-        id: 2,
-        title: "Vulputate — Tellus Etiam Commodo Pellentesque",
-        author: "ELLIOT ALDERSON",
-        date: "NOVEMBER 22, 2018",
-        category: "Nec Elt Quis Massa",
-        excerpt:
-            "Tellus etiam commodo pellentesque nec elit quis massa. Curabitur arcu erat, accumsan id imperdiet et, porttitor at sem.",
-        image: "/images/airplane-wing-sky-view.jpg",
-    },
-    {
-        id: 3,
-        title: "Etiam — Quis Naseetur Aenean Ipsum Vici",
-        author: "JOANNA WELLUCK",
-        date: "OCTOBER 15, 2018",
-        category: "Category",
-        excerpt:
-            "Quis nascetur aenean ipsum vici blandit. Sed dignissim lacinia nunc. Curabitur tortor Pellentesque nibh.",
-        image: "/images/woman-with-dog-on-plane.jpg",
-    },
-    {
-        id: 4,
-        title: "Maecena — Vitae Nec Adipiscing Quis Semper",
-        author: "ELLIOT ALDERSON",
-        date: "SEPTEMBER 3, 2018",
-        category: "Qusm Telus Nascetn",
-        excerpt:
-            "Vitae nec adipiscing quis semper. Aenean commodo ligula eget dolor. Cum sociis natoque penatibus et magnis.",
-        image: "/images/family-on-beach.jpg",
-    },
-    {
-        id: 5,
-        title: "Rhoncus — Et Tellus Id Magnis Nsl Maecenas",
-        author: "JOANNA WELLUCK",
-        date: "AUGUST 19, 2018",
-        category: "Pel Pellentesque",
-        excerpt:
-            "Et tellus id magnis nsl maecenas rhoncus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.",
-        image: "/images/coffee-shop-interior.jpg",
-    },
-]
-
-const shareButtons: { Icon: IconType; label: string }[] = [
-    { Icon: FaFacebook, label: "Facebook" },
-    { Icon: FaTwitter, label: "Twitter" },
-    { Icon: FaLinkedin, label: "LinkedIn" },
-    { Icon: FaShareAlt, label: "Share" },
-]
-
-const footerSections: { title: string; links: { label: string; href: string }[] }[] = [
-    { title: "Company", links: [{ label: "About Us", href: "#" }, { label: "Blog", href: "#" }, { label: "Contact", href: "#" }] },
-    { title: "Resources", links: [{ label: "Documentation", href: "#" }, { label: "FAQ", href: "#" }, { label: "Support", href: "#" }] },
-    { title: "Legal", links: [{ label: "Privacy Policy", href: "#" }, { label: "Terms of Service", href: "#" }] },
-]
-
-const socialLinks: { Icon: IconType; href: string; label: string }[] = [
-    { Icon: FaFacebook, href: "#", label: "Facebook" },
-    { Icon: FaTwitter, href: "#", label: "Twitter" },
-    { Icon: FaLinkedin, href: "#", label: "LinkedIn" },
-]
-
-function BlogCard({ post, variant }: { post: BlogPost; variant: "featured" | "grid" }) {
-    const imageSrc = post.image.startsWith("/") ? post.image : `/${post.image}`
-
-    if (variant === "featured") {
-        return (
-            <article className="space-y-6">
-                <div className="overflow-hidden rounded-lg">
-                    <Image
-                        src={imageSrc || "/placeholder.svg"}
-                        alt={post.title}
-                        width={1200}
-                        height={800}
-                        className="h-80 w-full object-cover"
-                    />
-                </div>
-                <div>
-                    <p className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                        {post.category}
-                    </p>
-                    <h2 className="mb-4 text-3xl font-bold leading-tight text-foreground">{post.title}</h2>
-                    <p className="mb-4 text-sm text-muted-foreground">{post.excerpt}</p>
-                    <div className="mb-6 flex items-center gap-3 border-t border-b border-border py-4">
-                        <div className="h-10 w-10 rounded-full bg-accent" />
-                        <div>
-                            <p className="text-sm font-semibold text-foreground">{post.author}</p>
-                            <p className="text-xs text-muted-foreground">{post.date}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-3">
-                        {shareButtons.map(({ Icon, label }) => (
-                            <button
-                                key={label}
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm hover:bg-secondary"
-                                aria-label={label}
-                            >
-                                <Icon className="h-4 w-4" />
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </article>
-        )
-    }
-
-    return (
-        <article className="group overflow-hidden rounded-lg border border-border transition-all hover:shadow-lg">
-            <div className="overflow-hidden">
-                <Image
-                    src={imageSrc || "/placeholder.svg"}
-                    alt={post.title}
-                    width={900}
-                    height={600}
-                    className="h-48 w-full object-cover transition-transform group-hover:scale-105"
-                />
-            </div>
-            <div className="p-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent">{post.category}</p>
-                <h3 className="mb-3 text-lg font-bold leading-snug text-foreground group-hover:text-accent">
-                    {post.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{post.author}</p>
-            </div>
-        </article>
-    )
-}
-
-export default async function BlogsPage() {
-    await new Promise((resolve) => {
-        setTimeout(() => resolve("intentional delay"), 2000)
-    })
-
-    const featuredPost = blogPosts.find((post) => post.featured)
-    const otherPosts = blogPosts.filter((post) => !post.featured)
-
-    return (
-        <div className="min-h-screen bg-background">
-            <main className="mx-auto max-w-7xl px-6 py-12">
-                <div className="grid gap-12 lg:grid-cols-3">
-                    {featuredPost && (
-                        <div className="lg:col-span-1">
-                            <BlogCard post={featuredPost} variant="featured" />
-                        </div>
-                    )}
-                    <div className="lg:col-span-2">
-                        <div className="grid gap-8 md:grid-cols-2">
-                            {otherPosts.map((post) => (
-                                <BlogCard key={post.id} post={post} variant="grid" />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <footer className="border-t border-border bg-secondary py-12">
-                <div className="mx-auto max-w-7xl px-6">
-                    <div className="grid gap-8 md:grid-cols-4">
-                        {footerSections.map((section) => (
-                            <div key={section.title}>
-                                <h3 className="mb-4 font-bold text-foreground">{section.title}</h3>
-                                <ul className="space-y-2 text-sm text-muted-foreground">
-                                    {section.links.map((link) => (
-                                        <li key={link.label}>
-                                            <a href={link.href} className="hover:text-foreground">
-                                                {link.label}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                        <div>
-                            <h3 className="mb-4 font-bold text-foreground">Follow</h3>
-                            <div className="flex gap-4">
-                                {socialLinks.map(({ Icon, href, label }) => (
-                                    <a
-                                        key={label}
-                                        href={href}
-                                        className="text-muted-foreground hover:text-foreground"
-                                        aria-label={label}
-                                    >
-                                        <Icon className="h-5 w-5" />
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-                        <p>&copy; 2025 FamilyRoots. All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
+  return (
+    <article className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+      <div className="relative h-72 md:h-96">
+        <Image src={post.image} alt={post.title} fill className="object-cover" />
+      </div>
+      <div className="space-y-3 p-6">
+        <span className="inline-flex rounded-md border border-[#16A34A]/20 bg-[#DCFCE7] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#166534]">
+          {post.category}
+        </span>
+        <h2 className="text-2xl font-bold leading-tight text-[#0F172A] md:text-4xl">{post.title}</h2>
+        <p className="text-sm leading-6 text-[#475569]">{post.excerpt}</p>
+        <div className="flex flex-wrap gap-4 text-xs text-[#64748B]">
+          <span className="inline-flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5 text-[#16A34A]" />
+            {post.date}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="h-3.5 w-3.5 text-[#16A34A]" />
+            {post.readTime}
+          </span>
         </div>
-    )
+        <Link
+          href={`/blogs/${post.id}`}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#16A34A] hover:text-[#15803D]"
+        >
+          Đọc toàn bộ bài
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function SideHeadline({ postId }: { postId: string }) {
+  const post = blogPosts.find((p) => p.id === postId);
+  if (!post) return null;
+
+  return (
+    <article className="border-b border-[#E2E8F0] pb-4 last:border-b-0 last:pb-0">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#16A34A]">{post.category}</p>
+      <Link href={`/blogs/${post.id}`} className="mt-1 block text-base font-bold leading-snug text-[#0F172A] hover:text-[#15803D]">
+        {post.title}
+      </Link>
+      <p className="mt-1 text-xs text-[#64748B]">{post.date}</p>
+    </article>
+  );
+}
+
+function NewsRow({ postId }: { postId: string }) {
+  const post = blogPosts.find((p) => p.id === postId);
+  if (!post) return null;
+
+  return (
+    <article className="grid gap-4 border-b border-[#E2E8F0] pb-5 md:grid-cols-4">
+      <div className="relative h-40 overflow-hidden rounded-xl md:col-span-1">
+        <Image src={post.image} alt={post.title} fill className="object-cover" />
+      </div>
+      <div className="space-y-2 md:col-span-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#16A34A]">{post.category}</p>
+        <Link href={`/blogs/${post.id}`} className="block text-xl font-bold leading-snug text-[#0F172A] hover:text-[#15803D]">
+          {post.title}
+        </Link>
+        <p className="line-clamp-2 text-sm text-[#475569]">{post.excerpt}</p>
+        <div className="flex items-center gap-4 text-xs text-[#64748B]">
+          <span>{post.date}</span>
+          <span>{post.readTime}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function BlogsPage() {
+  const leadId = blogPosts.find((post) => post.featured)?.id ?? blogPosts[0]?.id;
+  const sideIds = blogPosts.filter((post) => post.id !== leadId).slice(0, 4).map((post) => post.id);
+  const latestIds = blogPosts.filter((post) => post.id !== leadId).map((post) => post.id);
+
+  return (
+    <main className="min-h-screen bg-[#F8FAF8] px-4 py-8 text-[#0F172A] md:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-5 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#16A34A]">Gia Phả Việt Newsroom</p>
+              <h1 className="mt-2 text-3xl font-bold md:text-5xl">Tin tức gia đình</h1>
+            </div>
+            <p className="text-sm text-[#475569]">{new Date().toLocaleDateString("vi-VN")}</p>
+          </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">{leadId ? <LeadStory postId={leadId} /> : null}</div>
+          <aside className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-[#0F172A]">Tin nhanh</h2>
+            <div className="mt-4 space-y-4">
+              {sideIds.map((postId) => (
+                <SideHeadline key={postId} postId={postId} />
+              ))}
+            </div>
+          </aside>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm lg:col-span-2">
+            <h2 className="text-2xl font-bold text-[#0F172A]">Mới nhất</h2>
+            <div className="mt-5 space-y-5">
+              {latestIds.map((postId) => (
+                <NewsRow key={postId} postId={postId} />
+              ))}
+            </div>
+          </div>
+          <aside className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-[#0F172A]">Bản tin theo chủ đề</h2>
+            <div className="mt-4 space-y-2">
+              {["Hướng dẫn", "Kho tư liệu", "Bảo mật", "Sự kiện", "Cộng đồng"].map((tag) => (
+                <span key={tag} className="inline-flex rounded-md border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-1 text-xs text-[#475569]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <p className="mt-5 text-sm text-[#475569]">
+              Cập nhật liên tục các bài viết giúp dòng họ chuẩn hóa dữ liệu, quản lý sự kiện và lưu giữ di sản số.
+            </p>
+          </aside>
+        </section>
+      </div>
+    </main>
+  );
 }
