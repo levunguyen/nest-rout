@@ -1,101 +1,72 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { cn } from "@/components/lib/utils";
 import UpgradeFlowModal from "./UpgradeFlowModal";
 
 interface PricingCardProps {
-    name: string;
-    price: { monthly: number; yearly: number };
-    description: string;
-    features: string[];
-    featured?: boolean;
-    isYearly: boolean;
-    cta: string;
+  name: string;
+  price: { monthly: number; yearly: number };
+  description: string;
+  features: string[];
+  featured?: boolean;
+  isYearly: boolean;
+  cta: string;
 }
 
-const PricingCard = ({
-    name,
-    price,
-    description,
-    features,
-    featured = false,
-    isYearly,
-    cta,
-}: PricingCardProps) => {
-    const [showUpgrade, setShowUpgrade] = useState(false);
-    const currentPrice = isYearly ? price.yearly : price.monthly;
+export default function PricingCard({
+  name,
+  price,
+  description,
+  features,
+  featured = false,
+  isYearly,
+  cta,
+}: PricingCardProps) {
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const currentPrice = isYearly ? price.yearly : price.monthly;
 
-    return (
-        <>
-            <div
-                className={cn(
-                    "relative rounded-2xl p-8 flex flex-col transition-all duration-300 hover:-translate-y-1",
-                    featured ? "glass-card-featured" : "glass-card"
-                )}
-            >
-                {featured && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="rounded-full bg-primary px-4 py-1 text-xs font-semibold text-primary-foreground">
-                            Phổ biến nhất
-                        </span>
-                    </div>
-                )}
+  return (
+    <>
+      <article className={`rounded-2xl border bg-white p-6 shadow-sm ${featured ? "border-[#16A34A]" : "border-[#E2E8F0]"}`}>
+        {featured ? (
+          <span className="mb-3 inline-flex rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+            Phổ biến nhất
+          </span>
+        ) : null}
+        <h3 className="text-lg font-bold text-[#0F172A]">{name}</h3>
+        <p className="mt-1 text-sm text-[#475569]">{description}</p>
 
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-foreground">{name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-                </div>
+        <div className="mt-4">
+          <p className="text-4xl font-bold text-[#0F172A]">{currentPrice === 0 ? "Miễn phí" : `$${currentPrice}`}</p>
+          {currentPrice > 0 ? <p className="text-xs text-[#64748B]">/{isYearly ? "năm" : "tháng"}</p> : null}
+        </div>
 
-                <div className="mb-8">
-                    <div className="flex items-baseline gap-1">
-                        <span className={cn("text-4xl font-bold", featured ? "text-gradient" : "text-foreground")}>
-                            {currentPrice === 0 ? "Miễn phí" : `$${currentPrice}`}
-                        </span>
-                        {currentPrice > 0 && (
-                            <span className="text-muted-foreground text-sm">
-                                /{isYearly ? "năm" : "tháng"}
-                            </span>
-                        )}
-                    </div>
-                    {isYearly && currentPrice > 0 && (
-                        <p className="mt-1 text-xs text-primary">
-                            Tiết kiệm ${(price.monthly * 12 - price.yearly).toFixed(0)}/năm
-                        </p>
-                    )}
-                </div>
+        <ul className="mt-4 space-y-2">
+          {features.map((feature) => (
+            <li key={feature} className="flex items-start gap-2 text-sm text-[#334155]">
+              <Check className="mt-0.5 h-4 w-4 text-[#16A34A]" />
+              {feature}
+            </li>
+          ))}
+        </ul>
 
-                <ul className="mb-8 flex-1 space-y-3">
-                    {features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3 text-sm">
-                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                            <span className="text-muted-foreground">{feature}</span>
-                        </li>
-                    ))}
-                </ul>
+        <button
+          onClick={() => currentPrice > 0 && setShowUpgrade(true)}
+          className={`mt-5 w-full rounded-lg py-2.5 text-sm font-semibold ${
+            featured ? "bg-[#16A34A] text-white hover:bg-[#15803D]" : "border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAF8]"
+          }`}
+        >
+          {cta}
+        </button>
+      </article>
 
-                <button
-                    onClick={() => currentPrice > 0 && setShowUpgrade(true)}
-                    className={cn(
-                        "w-full rounded-lg py-3 text-sm font-semibold transition-all duration-200",
-                        featured
-                            ? "bg-primary text-primary-foreground btn-primary-glow hover:opacity-90"
-                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    )}
-                >
-                    {cta}
-                </button>
-            </div>
-
-            <UpgradeFlowModal
-                isOpen={showUpgrade}
-                onClose={() => setShowUpgrade(false)}
-                initialYearly={isYearly}
-                preselectedPlanName={name}
-            />
-        </>
-    );
-};
-
-export default PricingCard;
+      <UpgradeFlowModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        initialYearly={isYearly}
+        preselectedPlanName={name}
+      />
+    </>
+  );
+}

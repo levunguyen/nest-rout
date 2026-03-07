@@ -15,7 +15,7 @@ interface FamilyTreeCanvasProps {
   selectedMemberId?: string;
   collapsedNodes: Set<string>;
   onToggleCollapse: (memberId: string) => void;
-  hoveredMemberId?: string;
+  hoveredMemberId?: string | null;
   onMemberHover?: (memberId: string | null) => void;
   onZoomChange?: (zoom: number) => void;
 }

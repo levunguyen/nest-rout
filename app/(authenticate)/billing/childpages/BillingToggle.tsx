@@ -3,38 +3,31 @@
 import { cn } from "@/components/lib/utils";
 
 interface BillingToggleProps {
-    isYearly: boolean;
-    onToggle: (yearly: boolean) => void;
+  isYearly: boolean;
+  onToggle: (yearly: boolean) => void;
 }
 
-const BillingToggle = ({ isYearly, onToggle }: BillingToggleProps) => {
-    return (
-        <div className="inline-flex items-center gap-3 rounded-full bg-secondary p-1">
-            <button
-                onClick={() => onToggle(false)}
-                className={cn(
-                    "rounded-full px-5 py-2 text-sm font-medium transition-all duration-200",
-                    !isYearly
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                Hàng tháng
-            </button>
-            <button
-                onClick={() => onToggle(true)}
-                className={cn(
-                    "rounded-full px-5 py-2 text-sm font-medium transition-all duration-200",
-                    isYearly
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                Hàng năm
-                <span className="ml-1.5 text-xs text-primary">-20%</span>
-            </button>
-        </div>
-    );
-};
-
-export default BillingToggle;
+export default function BillingToggle({ isYearly, onToggle }: BillingToggleProps) {
+  return (
+    <div className="inline-flex items-center rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-1">
+      <button
+        onClick={() => onToggle(false)}
+        className={cn(
+          "rounded-md px-4 py-1.5 text-sm font-medium transition",
+          !isYearly ? "bg-[#16A34A] text-white" : "text-[#334155]",
+        )}
+      >
+        Hàng tháng
+      </button>
+      <button
+        onClick={() => onToggle(true)}
+        className={cn(
+          "rounded-md px-4 py-1.5 text-sm font-medium transition",
+          isYearly ? "bg-[#16A34A] text-white" : "text-[#334155]",
+        )}
+      >
+        Hàng năm <span className={cn("ml-1 text-xs", isYearly ? "text-white/90" : "text-[#166534]")}>-20%</span>
+      </button>
+    </div>
+  );
+}

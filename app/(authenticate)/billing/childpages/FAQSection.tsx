@@ -1,63 +1,47 @@
-"use client"
+"use client";
+
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/components/lib/utils";
 
 const faqs = [
-    {
-        q: "Tôi có thể hủy gói đăng ký bất cứ lúc nào không?",
-        a: "Có, bạn có thể hủy bất cứ lúc nào. Bạn sẽ tiếp tục sử dụng dịch vụ cho đến hết chu kỳ thanh toán hiện tại.",
-    },
-    {
-        q: "Phương thức thanh toán nào được hỗ trợ?",
-        a: "Chúng tôi hỗ trợ thẻ Visa, Mastercard, American Express và các ví điện tử phổ biến.",
-    },
-    {
-        q: "Có thể chuyển đổi giữa các gói không?",
-        a: "Có, bạn có thể nâng cấp hoặc hạ cấp gói bất cứ lúc nào. Phần chênh lệch sẽ được tính theo tỷ lệ.",
-    },
-    {
-        q: "Dữ liệu của tôi có an toàn không?",
-        a: "Chúng tôi sử dụng mã hóa SSL/TLS và tuân thủ các tiêu chuẩn bảo mật quốc tế để bảo vệ dữ liệu của bạn.",
-    },
+  {
+    q: "Tôi có thể hủy gói đăng ký bất cứ lúc nào không?",
+    a: "Có. Bạn có thể hủy bất cứ lúc nào và tiếp tục dùng đến hết chu kỳ hiện tại.",
+  },
+  {
+    q: "Phương thức thanh toán nào được hỗ trợ?",
+    a: "Hỗ trợ thẻ Visa/Mastercard, ví điện tử và chuyển khoản ngân hàng.",
+  },
+  {
+    q: "Có thể chuyển đổi giữa các gói không?",
+    a: "Có. Bạn có thể nâng cấp hoặc hạ cấp và hệ thống sẽ tính theo phần chênh lệch.",
+  },
+  {
+    q: "Dữ liệu thanh toán có an toàn không?",
+    a: "Thông tin thanh toán được xử lý qua cổng bảo mật và truyền tải qua kết nối mã hóa.",
+  },
 ];
 
-const FAQSection = () => {
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
+export default function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-    return (
-        <section className="mx-auto mt-24 max-w-2xl px-6 pb-24">
-            <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
-                Câu hỏi thường gặp
-            </h2>
-            <div className="space-y-3">
-                {faqs.map((faq, i) => (
-                    <div key={i} className="glass-card rounded-xl overflow-hidden">
-                        <button
-                            onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                            className="flex w-full items-center justify-between p-5 text-left"
-                        >
-                            <span className="text-sm font-medium text-foreground">{faq.q}</span>
-                            <ChevronDown
-                                className={cn(
-                                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-                                    openIndex === i && "rotate-180"
-                                )}
-                            />
-                        </button>
-                        <div
-                            className={cn(
-                                "overflow-hidden transition-all duration-200",
-                                openIndex === i ? "max-h-40 pb-5 px-5" : "max-h-0"
-                            )}
-                        >
-                            <p className="text-sm text-muted-foreground">{faq.a}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
-};
-
-export default FAQSection;
+  return (
+    <section className="mx-auto mt-12 max-w-3xl px-6 pb-16">
+      <h2 className="mb-4 text-center text-2xl font-bold text-[#0F172A]">Câu hỏi thường gặp</h2>
+      <div className="space-y-2">
+        {faqs.map((faq, index) => (
+          <div key={faq.q} className="rounded-xl border border-[#E2E8F0] bg-white shadow-sm">
+            <button
+              onClick={() => setOpenIndex(openIndex === index ? null : index)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+            >
+              <span className="text-sm font-medium text-[#0F172A]">{faq.q}</span>
+              <ChevronDown className={`h-4 w-4 text-[#64748B] transition ${openIndex === index ? "rotate-180" : ""}`} />
+            </button>
+            {openIndex === index ? <p className="px-4 pb-4 text-sm text-[#475569]">{faq.a}</p> : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

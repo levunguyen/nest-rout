@@ -1,228 +1,270 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MdArrowDropDown, MdAdd } from "react-icons/md"
-import Image from "next/image"
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, MapPin, Search, SlidersHorizontal, UserPlus } from "lucide-react";
+
+type HealthStatus = "Excellent" | "Good" | "Fair";
 
 interface FamilyMember {
-    id: number
-    name: string
-    relation: string
-    age: number
-    location: string
-    healthStatus: "Good" | "Excellent" | "Fair"
-    lastUpdate: string
-    backgroundImage: string
-    profileImage: string
+  id: number;
+  name: string;
+  relation: string;
+  age: number;
+  location: string;
+  healthStatus: HealthStatus;
+  lastUpdate: string;
+  image: string;
 }
 
-const mockFamilyMembers: FamilyMember[] = [
-    {
-        id: 1,
-        name: "Robert Johnson",
-        relation: "Grandfather",
-        age: 72,
-        location: "Chicago, IL",
-        healthStatus: "Good",
-        lastUpdate: "Had his annual checkup yesterday. Doctor says blood pressure is improving!",
-        backgroundImage: "/elderly-man-glasses.png",
-        profileImage: "/elderly-man-portrait.png",
-    },
-    {
-        id: 2,
-        name: "Margaret Johnson",
-        relation: "Grandmother",
-        age: 70,
-        location: "Chicago, IL",
-        healthStatus: "Excellent",
-        lastUpdate: "Started a new water aerobics class at the community center. Loving it!",
-        backgroundImage: "/elderly-woman-outdoors-garden.jpg",
-        profileImage: "/elderly-woman-portrait.png",
-    },
-    {
-        id: 3,
-        name: "James Anderson",
-        relation: "Son",
-        age: 45,
-        location: "Boston, MA",
-        healthStatus: "Good",
-        lastUpdate: "Got promoted to Senior Manager at work! Celebrating this weekend.",
-        backgroundImage: "/middle-aged-man-professional.jpg",
-        profileImage: "/professional-man-portrait.png",
-    },
-    {
-        id: 4,
-        name: "Elizabeth Parker",
-        relation: "Daughter-in-law",
-        age: 43,
-        location: "Boston, MA",
-        healthStatus: "Excellent",
-        lastUpdate: "Completed her first half marathon! Training for a full one next spring.",
-        backgroundImage: "/woman-running-marathon-outdoors.jpg",
-        profileImage: "/athletic-woman-portrait.png",
-    },
-    {
-        id: 5,
-        name: "Sarah Anderson",
-        relation: "Granddaughter",
-        age: 16,
-        location: "Boston, MA",
-        healthStatus: "Excellent",
-        lastUpdate: "Made the honor roll again! Also joined the school debate team.",
-        backgroundImage: "/young-girl-student-indoor.jpg",
-        profileImage: "/young-girl-portrait.png",
-    },
-    {
-        id: 6,
-        name: "Michael Anderson",
-        relation: "Grandson",
-        age: 12,
-        location: "Boston, MA",
-        healthStatus: "Excellent",
-        lastUpdate: "Scored two goals in his soccer game last weekend! Team made it to finals.",
-        backgroundImage: "/young-boy-sports-soccer.jpg",
-        profileImage: "/young-boy-portrait.png",
-    },
-]
+const familyMembers: FamilyMember[] = [
+  {
+    id: 1,
+    name: "Robert Johnson",
+    relation: "Grandfather",
+    age: 72,
+    location: "Chicago, IL",
+    healthStatus: "Good",
+    lastUpdate: "Had his annual checkup yesterday. Doctor says blood pressure is improving.",
+    image: "/images/grandfather.png",
+  },
+  {
+    id: 2,
+    name: "Margaret Johnson",
+    relation: "Grandmother",
+    age: 70,
+    location: "Chicago, IL",
+    healthStatus: "Excellent",
+    lastUpdate: "Started a new water aerobics class at the community center.",
+    image: "/images/grandmother.png",
+  },
+  {
+    id: 3,
+    name: "James Anderson",
+    relation: "Son",
+    age: 45,
+    location: "Boston, MA",
+    healthStatus: "Good",
+    lastUpdate: "Got promoted to Senior Manager at work.",
+    image: "/images/dad.png",
+  },
+  {
+    id: 4,
+    name: "Elizabeth Parker",
+    relation: "Daughter-in-law",
+    age: 43,
+    location: "Boston, MA",
+    healthStatus: "Excellent",
+    lastUpdate: "Completed her first half marathon. Training for full marathon next spring.",
+    image: "/images/young-girl-portrait.png",
+  },
+  {
+    id: 5,
+    name: "Sarah Anderson",
+    relation: "Granddaughter",
+    age: 16,
+    location: "Boston, MA",
+    healthStatus: "Excellent",
+    lastUpdate: "Made the honor roll and joined the school debate team.",
+    image: "/images/young-girl-student-indoor.png",
+  },
+  {
+    id: 6,
+    name: "Michael Anderson",
+    relation: "Grandson",
+    age: 12,
+    location: "Boston, MA",
+    healthStatus: "Excellent",
+    lastUpdate: "Scored two goals in his soccer match this weekend.",
+    image: "/images/nephew.png",
+  },
+  {
+    id: 7,
+    name: "Thomas Clark",
+    relation: "Uncle",
+    age: 51,
+    location: "Seattle, WA",
+    healthStatus: "Fair",
+    lastUpdate: "Started physiotherapy sessions and light daily walking.",
+    image: "/images/uncle.png",
+  },
+  {
+    id: 8,
+    name: "Emma Clark",
+    relation: "Aunt",
+    age: 49,
+    location: "Seattle, WA",
+    healthStatus: "Good",
+    lastUpdate: "Organized monthly family dinner and digitized old photo albums.",
+    image: "/images/young-girl-face.png",
+  },
+];
 
-const getHealthStatusColor = (status: string) => {
-    switch (status) {
-        case "Good":
-            return "text-green-600"
-        case "Excellent":
-            return "text-green-600"
-        case "Fair":
-            return "text-yellow-600"
-        default:
-            return "text-gray-600"
-    }
-}
+const getStatusStyles = (status: HealthStatus) => {
+  if (status === "Excellent") return "bg-[#DCFCE7] text-[#166534]";
+  if (status === "Good") return "bg-[#ECFDF5] text-[#166534]";
+  return "bg-[#FEF3C7] text-[#92400E]";
+};
 
 export default function PeoplePage() {
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 6
-    const totalItems = 24
-    const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const [search, setSearch] = useState("");
+  const [relationFilter, setRelationFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 6;
 
-    return (
-        <div className="min-h-screen bg-gray-50">
+  const relationOptions = useMemo(
+    () => Array.from(new Set(familyMembers.map((member) => member.relation))).sort(),
+    [],
+  );
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return familyMembers.filter((member) => {
+      const matchesQuery =
+        !q ||
+        member.name.toLowerCase().includes(q) ||
+        member.location.toLowerCase().includes(q) ||
+        member.relation.toLowerCase().includes(q);
+      const matchesRelation = relationFilter === "all" || member.relation === relationFilter;
+      return matchesQuery && matchesRelation;
+    });
+  }, [search, relationFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedMembers = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
+  return (
+    <main className="min-h-screen bg-[#F8FAF8] px-4 py-8 text-[#0F172A] md:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold md:text-4xl">Family Members</h1>
+              <p className="mt-2 text-sm text-[#475569]">
+                Quản lý hồ sơ thành viên theo nhánh gia đình, tình trạng sức khỏe và địa điểm sinh sống.
+              </p>
+            </div>
+            <button className="inline-flex items-center gap-2 rounded-lg bg-[#16A34A] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#15803D]">
+              <UserPlus className="h-4 w-4" />
+              Add Family Member
+            </button>
+          </div>
+        </section>
 
-            {/* Main Content */}
-            <main className="flex-1 p-8">
-                {/* Page Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">Family Members</h1>
-                    <div className="flex items-center gap-4">
-                        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-gray-700 text-sm font-medium">
-                            All Family Members
-                            <MdArrowDropDown />
-                        </button>
-                        <button className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm font-medium transition">
-                            <MdAdd size={18} />
-                            Add Family Member
-                        </button>
-                    </div>
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+              <input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by name, relation, or location..."
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
+              />
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-2">
+              <SlidersHorizontal className="h-4 w-4 text-[#16A34A]" />
+              <select
+                value={relationFilter}
+                onChange={(e) => {
+                  setRelationFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-transparent text-sm text-[#0F172A] focus:outline-none"
+              >
+                <option value="all">All relations</option>
+                {relationOptions.map((relation) => (
+                  <option key={relation} value={relation}>
+                    {relation}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {pagedMembers.map((member) => (
+            <article key={member.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-[#E2E8F0] bg-[#F8FAF8]">
+                  <Image src={member.image} alt={member.name} fill className="object-cover" />
                 </div>
-
-                {/* Family Members Grid */}
-                <div className="grid grid-cols-3 gap-6 mb-12">
-                    {mockFamilyMembers.map((member) => (
-                        <div
-                            key={member.id}
-                            className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                        >
-                            {/* Background Image Container */}
-                            <div className="relative h-48 bg-gray-200 overflow-hidden">
-                                <Image
-                                    src={member.backgroundImage || "/placeholder.svg"}
-                                    alt={member.name}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, 33vw"
-                                    className="object-cover"
-                                />
-                                {/* Profile Image Overlay */}
-                                <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                                    <Image
-                                        src={member.profileImage || "/placeholder.svg"}
-                                        alt={member.name}
-                                        width={96}
-                                        height={96}
-                                        className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Card Content */}
-                            <div className="pt-16 pb-6 px-6 text-center">
-                                {/* Name and Relation */}
-                                <div className="mb-2">
-                                    <div className="flex items-center justify-center gap-2 mb-1">
-                                        <h3 className="text-lg font-bold text-gray-900">{member.name}</h3>
-                                        <span className="text-xs font-semibold text-orange-500 bg-orange-50 px-2 py-1 rounded">
-                                            {member.relation}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                        {member.age} years • {member.location}
-                                    </p>
-                                </div>
-
-                                {/* Health Status */}
-                                <div className="flex items-center justify-center gap-2 mb-4 text-sm">
-                                    <span className="text-red-500">❤️</span>
-                                    <span className="text-gray-600">
-                                        Health Status:{" "}
-                                        <span className={`font-semibold ${getHealthStatusColor(member.healthStatus)}`}>
-                                            {member.healthStatus}
-                                        </span>
-                                    </span>
-                                </div>
-
-                                {/* Last Update */}
-                                <p className="text-xs text-gray-600 mb-6 leading-relaxed line-clamp-3">
-                                    Last update: {member.lastUpdate}
-                                </p>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-3">
-                                    <button className="flex-1 px-4 py-2 border-2 border-orange-300 text-orange-500 rounded hover:bg-orange-50 text-sm font-semibold transition">
-                                        Message
-                                    </button>
-                                    <button className="flex-1 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm font-semibold transition">
-                                        View Profile
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-semibold text-[#0F172A]">{member.name}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAF8] px-2.5 py-1 text-xs text-[#475569]">{member.relation}</span>
+                    <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAF8] px-2.5 py-1 text-xs text-[#475569]">{member.age} years</span>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusStyles(member.healthStatus)}`}>
+                      {member.healthStatus}
+                    </span>
+                  </div>
                 </div>
+              </div>
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between pt-8 border-t border-gray-200">
-                    <p className="text-sm text-gray-600">
-                        Showing {mockFamilyMembers.length} of {totalItems} family members
-                    </p>
-                    <div className="flex gap-2">
-                        {Array.from({ length: totalPages }).map((_, index) => (
-                            <button
-                                key={index + 1}
-                                onClick={() => setCurrentPage(index + 1)}
-                                className={`w-9 h-9 rounded text-sm font-semibold transition ${currentPage === index + 1
-                                    ? "bg-orange-500 text-white"
-                                    : "bg-white border border-gray-300 text-gray-700 hover:border-orange-500"
-                                    }`}
-                            >
-                                {index + 1}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </main>
+              <p className="mt-3 inline-flex items-center gap-1 text-sm text-[#475569]">
+                <MapPin className="h-4 w-4 text-[#16A34A]" />
+                {member.location}
+              </p>
 
+              <p className="mt-3 line-clamp-3 text-sm text-[#475569]">{member.lastUpdate}</p>
 
-        </div>
-    )
+              <div className="mt-4 flex gap-2">
+                <button className="flex-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[#0F172A] hover:bg-[#F8FAF8]">
+                  Message
+                </button>
+                <button className="flex-1 rounded-lg bg-[#16A34A] px-3 py-2 text-sm font-semibold text-white hover:bg-[#15803D]">
+                  View Profile
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="flex flex-col gap-3 border-t border-[#E2E8F0] pt-5 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-[#64748B]">
+            Showing {pagedMembers.length} of {filtered.length} members
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={safePage === 1}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#0F172A] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: totalPages }).map((_, idx) => {
+              const value = idx + 1;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPage(value)}
+                  className={[
+                    "h-9 min-w-9 rounded-lg px-2 text-sm font-semibold",
+                    safePage === value ? "bg-[#16A34A] text-white" : "border border-[#E2E8F0] bg-white text-[#0F172A]",
+                  ].join(" ")}
+                >
+                  {value}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={safePage === totalPages}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#0F172A] disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
