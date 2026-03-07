@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import type { ReactElement } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import { FamilyMemberCard } from "./FamilyMemberCard";
 import { cn } from "@/components/lib/utils";
@@ -388,7 +389,7 @@ export const FamilyTreeCanvas = ({
   const svgOffset = svgWidth / 2;
 
   const renderConnections = useCallback(() => {
-    const lines: JSX.Element[] = [];
+    const lines: ReactElement[] = [];
 
     // Draw spouse connections (horizontal lines between couples - supports multiple spouses)
     const drawnSpouses = new Set<string>();
