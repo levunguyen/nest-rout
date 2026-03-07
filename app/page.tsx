@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import {
   ChevronRight,
   HeartHandshake,
@@ -87,12 +88,12 @@ const familyMoments = [
   { src: nephew, title: "Trao lại cho thế hệ sau", note: "Dễ chia sẻ để con cháu cùng tiếp nối." },
 ];
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, delay: i * 0.08, ease: "easeOut" },
+    transition: { duration: 0.55, delay: i * 0.08, ease: "easeOut" as const },
   }),
 };
 
