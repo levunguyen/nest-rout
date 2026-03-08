@@ -1,5 +1,6 @@
 import { FamilyMember } from "../../types/FamilyTree";
 import { cn } from "@/components/lib/utils";
+import type { MouseEventHandler } from "react";
 
 // Custom Female Icon component
 const FemaleIcon = ({ className }: { className?: string }) => (
@@ -43,6 +44,7 @@ interface FamilyMemberCardProps {
   isHighlighted?: boolean;
   isSearchMatch?: boolean;
   onClick?: () => void;
+  onContextMenu?: MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
@@ -53,6 +55,7 @@ export const FamilyMemberCard = ({
   isHighlighted,
   isSearchMatch,
   onClick,
+  onContextMenu,
   onMouseEnter,
   onMouseLeave,
 }: FamilyMemberCardProps) => {
@@ -61,6 +64,7 @@ export const FamilyMemberCard = ({
   return (
     <div
       onClick={onClick}
+      onContextMenu={onContextMenu}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,6 +17,7 @@ import {
 
 export default function Topbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [profileOpen, setProfileOpen] = useState(false);
     const [notiOpen, setNotiOpen] = useState(false);
 
@@ -61,6 +62,18 @@ export default function Topbar() {
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
     }, []);
+
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/auth/logout", {
+                method: "POST",
+            });
+        } finally {
+            setProfileOpen(false);
+            router.push("/login");
+            router.refresh();
+        }
+    };
 
     return (
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
@@ -187,7 +200,10 @@ export default function Topbar() {
                                         <FaCog /> Settings
                                     </Link>
                                     <div className="h-px bg-gray-200 my-1" />
-                                    <button className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+                                    >
                                         <FaSignOutAlt /> Logout
                                     </button>
                                 </motion.div>

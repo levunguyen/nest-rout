@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { User, Calendar, Users, Edit2, Heart } from "lucide-react";
+import { User, Calendar, Users, Edit2, Heart, Sparkles, Dot } from "lucide-react";
 import { cn } from "@/components/lib/utils";
 import { getSpouses } from "../../utils/relations";
 
@@ -41,83 +41,98 @@ export const MemberDetails = ({
 
   return (
     <Dialog open={!!member} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#E2E8F0] bg-[#FCFDFC] sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Chi tiết thành viên</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-[#0F172A]">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#DCFCE7] text-[#166534]">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            Chi tiết thành viên
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Avatar and Name */}
-          <div className="text-center">
-            <div
-              className={cn(
-                "w-20 h-20 mx-auto mb-3 rounded-full flex items-center justify-center",
-                member.gender === "male"
-                  ? "bg-primary/20 text-primary"
-                  : "bg-accent-foreground/20 text-accent-foreground"
-              )}
-            >
-              <User className="w-10 h-10" />
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={cn(
+                  "flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border",
+                  member.gender === "male"
+                    ? "border-[#86EFAC] bg-[#DCFCE7] text-[#166534]"
+                    : "border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]"
+                )}
+              >
+                <User className="h-10 w-10" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate text-2xl font-bold text-[#0F172A]">{member.name}</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAF8] px-2.5 py-1 text-xs font-medium text-[#475569]">
+                    Đời {member.generation}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium",
+                      member.gender === "male" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEF3C7] text-[#92400E]"
+                    )}
+                  >
+                    {member.gender === "male" ? "Nam" : "Nữ"}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-foreground">{member.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              Đời thứ {member.generation} •{" "}
-              {member.gender === "male" ? "Nam" : "Nữ"}
-            </p>
-          </div>
-
-          {/* Dates */}
-          <div className="flex items-center justify-center gap-2 text-sm">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <span>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-2 text-sm text-[#334155]">
+              <Calendar className="h-4 w-4 text-[#16A34A]" />
               {member.birthYear}
               {member.deathYear ? ` - ${member.deathYear}` : " - nay"}
-            </span>
+            </div>
           </div>
 
-          {/* Relations */}
-          <div className="space-y-3 pt-2 border-t">
-            {/* Spouses */}
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</h4>
+            <div className="space-y-3">
             {spouses.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Heart className="w-4 h-4" />
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#0F172A]">
+                  <Heart className="h-4 w-4 text-[#E11D48]" />
                   <span>Vợ/Chồng ({spouses.length})</span>
                 </div>
-                <div className="pl-6 space-y-0.5">
+                <div className="space-y-1">
                   {spouses.map((spouse) => (
-                    <p key={spouse.id} className="text-sm">{spouse.name}</p>
+                    <p key={spouse.id} className="inline-flex items-center gap-1 text-sm text-[#334155]">
+                      <Dot className="h-4 w-4 text-[#16A34A]" />
+                      {spouse.name}
+                    </p>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Parent */}
             {parent && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Users className="w-4 h-4" />
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#0F172A]">
+                  <Users className="h-4 w-4 text-[#16A34A]" />
                   <span>Cha/Mẹ</span>
                 </div>
-                <p className="text-sm pl-6">{parent.name}</p>
+                <p className="text-sm text-[#334155]">{parent.name}</p>
               </div>
             )}
 
-            {/* Siblings */}
             {siblings.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Users className="w-4 h-4" />
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#0F172A]">
+                  <Users className="h-4 w-4 text-[#16A34A]" />
                   <span>Anh/Chị/Em ({siblings.length})</span>
                 </div>
-                <div className="pl-6 space-y-0.5">
+                <div className="space-y-1">
                   {siblings.slice(0, 5).map((sibling) => (
-                    <p key={sibling.id} className="text-sm">
+                    <p key={sibling.id} className="inline-flex items-center gap-1 text-sm text-[#334155]">
+                      <Dot className="h-4 w-4 text-[#16A34A]" />
                       {sibling.name}
                     </p>
                   ))}
                   {siblings.length > 5 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[#64748B]">
                       +{siblings.length - 5} người khác
                     </p>
                   )}
@@ -125,21 +140,21 @@ export const MemberDetails = ({
               </div>
             )}
 
-            {/* Children */}
             {children.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Users className="w-4 h-4" />
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#0F172A]">
+                  <Users className="h-4 w-4 text-[#16A34A]" />
                   <span>Con cái ({children.length})</span>
                 </div>
-                <div className="pl-6 space-y-0.5">
+                <div className="space-y-1">
                   {children.slice(0, 5).map((child) => (
-                    <p key={child.id} className="text-sm">
+                    <p key={child.id} className="inline-flex items-center gap-1 text-sm text-[#334155]">
+                      <Dot className="h-4 w-4 text-[#16A34A]" />
                       {child.name}
                     </p>
                   ))}
                   {children.length > 5 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[#64748B]">
                       +{children.length - 5} người khác
                     </p>
                   )}
@@ -147,14 +162,14 @@ export const MemberDetails = ({
               </div>
             )}
           </div>
+          </div>
 
-          {/* Edit Button */}
           <Button
             onClick={() => onEdit(member)}
-            className="w-full mt-4"
+            className="mt-2 w-full border-[#16A34A] text-[#166534] hover:bg-[#DCFCE7]"
             variant="outline"
           >
-            <Edit2 className="w-4 h-4 mr-2" />
+            <Edit2 className="mr-2 h-4 w-4" />
             Chỉnh sửa
           </Button>
         </div>

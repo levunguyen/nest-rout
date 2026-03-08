@@ -5,12 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ActivitySquare,
+  MailPlus,
   Database,
   FolderArchive,
   LayoutDashboard,
   LockKeyhole,
   LogOut,
   Logs,
+  Newspaper,
   Settings,
   ShieldCheck,
   Users,
@@ -25,6 +27,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Bảng điều khiển", href: "/admin/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Người dùng", href: "/admin/users", icon: <Users className="h-4 w-4" /> },
+  { label: "Mời thành viên", href: "/admin/invitations", icon: <MailPlus className="h-4 w-4" /> },
+  { label: "Tin tức", href: "/admin/news", icon: <Newspaper className="h-4 w-4" /> },
   { label: "Kiểm soát truy cập", href: "/admin/access-control", icon: <LockKeyhole className="h-4 w-4" /> },
   { label: "Dữ liệu", href: "/admin/data-management", icon: <Database className="h-4 w-4" /> },
   { label: "Media", href: "/admin/media-management", icon: <FolderArchive className="h-4 w-4" /> },

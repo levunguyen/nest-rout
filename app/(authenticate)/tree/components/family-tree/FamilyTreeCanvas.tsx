@@ -13,6 +13,10 @@ interface FamilyTreeCanvasProps {
   selectedGeneration: number | null;
   searchQuery: string;
   onMemberClick: (member: FamilyMember) => void;
+  onMemberContextMenu?: (
+    member: FamilyMember,
+    position: { clientX: number; clientY: number }
+  ) => void;
   selectedMemberId?: string;
   collapsedNodes: Set<string>;
   onToggleCollapse: (memberId: string) => void;
@@ -34,6 +38,7 @@ export const FamilyTreeCanvas = ({
   selectedGeneration,
   searchQuery,
   onMemberClick,
+  onMemberContextMenu,
   selectedMemberId,
   collapsedNodes,
   onToggleCollapse,
@@ -558,6 +563,7 @@ export const FamilyTreeCanvas = ({
 
   // Mouse handlers
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
     setIsDragging(true);
     setStartPos({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
@@ -754,6 +760,14 @@ export const FamilyTreeCanvas = ({
                 isHighlighted={!!isChildOfHovered || !!isChildOfHoveredSpouse}
                 isSearchMatch={isSearchMatch}
                 onClick={() => onMemberClick(member)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onMemberContextMenu?.(member, {
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                  });
+                }}
                 onMouseEnter={() => onMemberHover?.(member.id)}
                 onMouseLeave={() => onMemberHover?.(null)}
               />

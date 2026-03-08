@@ -6,11 +6,13 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { MdEmail, MdLock } from "react-icons/md"
-import { Sparkles, TreePine } from "lucide-react"
+import { Eye, EyeOff, Sparkles, TreePine } from "lucide-react"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
+    const [rememberMe, setRememberMe] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const router = useRouter()
@@ -21,13 +23,31 @@ export default function LoginPage() {
         setIsLoading(true)
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    rememberMe,
+                }),
+            })
 
-            if (email && password) {
-                router.push("/dashboard")
-            } else {
-                setError("Please fill in all fields")
+            const payload = await response.json().catch(() => ({}))
+
+            if (!response.ok) {
+                const fieldErrors = payload?.details?.fieldErrors as Record<string, string[] | undefined> | undefined
+                const firstFieldError = fieldErrors
+                    ? Object.values(fieldErrors).flat().find(Boolean)
+                    : undefined
+                setError(firstFieldError ?? payload?.error ?? "Đăng nhập thất bại. Vui lòng thử lại.")
+                return
             }
+
+            router.push("/dashboard")
+            router.refresh()
         } catch {
             setError("Something went wrong. Please try again.")
         } finally {
@@ -108,15 +128,34 @@ export default function LoginPage() {
                                 <MdLock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#16A34A]" />
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
+                                    minLength={8}
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#16A34A] focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
+                                    className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-10 text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#16A34A] focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A]"
+                                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
+
+                        <label className="flex items-center gap-2 text-sm text-[#475569]">
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="h-4 w-4 rounded border-[#94A3B8] text-[#16A34A] focus:ring-[#16A34A]/30"
+                            />
+                            Remember me
+                        </label>
 
                         {error && (
                             <div className="rounded-lg border border-red-200 bg-red-50 p-3">

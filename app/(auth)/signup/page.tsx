@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { MdEmail, MdLock, MdPerson } from "react-icons/md"
 import { Sparkles, TreePine } from "lucide-react"
 import memorial from "../../../public/images/hero-memorial.jpg"
@@ -19,6 +19,8 @@ export default function SignupPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const invitationToken = searchParams.get("inviteToken") ?? undefined
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -37,13 +39,31 @@ export default function SignupPage() {
         setIsLoading(true)
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 1500))
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    fullName,
+                    email,
+                    password,
+                    invitationToken,
+                }),
+            })
 
-            if (fullName && email && password) {
-                router.push("/dashboard")
-            } else {
-                setError("Please fill in all fields")
+            const payload = await response.json().catch(() => ({}))
+
+            if (!response.ok) {
+                const fieldErrors = payload?.details?.fieldErrors as Record<string, string[] | undefined> | undefined
+                const firstFieldError = fieldErrors
+                    ? Object.values(fieldErrors).flat().find(Boolean)
+                    : undefined
+                setError(firstFieldError ?? payload?.error ?? "Đăng ký thất bại. Vui lòng thử lại.")
+                return
             }
+
+            router.push("/dashboard")
         } catch {
             setError("Something went wrong. Please try again.")
         } finally {
@@ -147,6 +167,7 @@ export default function SignupPage() {
                                     id="password"
                                     type="password"
                                     placeholder="Tạo mật khẩu mạnh"
+                                    minLength={8}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#16A34A] focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
@@ -165,6 +186,7 @@ export default function SignupPage() {
                                     id="confirmPassword"
                                     type="password"
                                     placeholder="Nhập lại mật khẩu"
+                                    minLength={8}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#16A34A] focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
