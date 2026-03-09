@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import {
   Dialog,
@@ -49,6 +49,9 @@ export const MemberDialog = ({
   const [deathYear, setDeathYear] = useState(
     member?.deathYear?.toString() ?? initialValues?.deathYear?.toString() ?? "",
   );
+  const [address, setAddress] = useState(member?.address ?? initialValues?.address ?? "");
+  const [city, setCity] = useState(member?.city ?? initialValues?.city ?? "");
+  const [country, setCountry] = useState(member?.country ?? initialValues?.country ?? "");
   const [gender, setGender] = useState<"male" | "female">(
     member?.gender ?? initialValues?.gender ?? "male",
   );
@@ -57,6 +60,26 @@ export const MemberDialog = ({
   const [spouseIds, setSpouseIds] = useState<string[]>(member?.spouseIds ?? initialValues?.spouseIds ?? []);
   const [imageUrl, setImageUrl] = useState(member?.imageUrl ?? initialValues?.imageUrl ?? "");
   const [spouseSearch, setSpouseSearch] = useState("");
+  const [isSpouseSectionOpen, setIsSpouseSectionOpen] = useState(
+    (member?.spouseIds?.length ?? initialValues?.spouseIds?.length ?? 0) > 0,
+  );
+  const [mobileStep, setMobileStep] = useState<1 | 2>(1);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const query = "(min-width: 1024px)";
+    const mediaQuery = window.matchMedia(query);
+    const update = () => setIsDesktop(mediaQuery.matches);
+    update();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", update);
+      return () => mediaQuery.removeEventListener("change", update);
+    }
+
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
 
   const handleParentChange = (value: string) => {
     setParentId(value === "none" ? "" : value);
@@ -76,6 +99,9 @@ export const MemberDialog = ({
       name,
       birthYear: parsedBirthYear,
       deathYear: parsedDeathYear,
+      address: address.trim() || undefined,
+      city: city.trim() || undefined,
+      country: country.trim() || undefined,
       gender,
       parentId: parentId || undefined,
       generation,
@@ -114,7 +140,7 @@ export const MemberDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#E2E8F0] bg-[#FCFDFC] sm:max-w-2xl">
+      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#E2E8F0] bg-[#FCFDFC] sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-[#0F172A]">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#DCFCE7] text-[#166534]">
@@ -124,177 +150,359 @@ export const MemberDialog = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Nhập họ và tên..."
-                  className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="birthYear" className="text-[#0F172A]">Năm sinh</Label>
-                <Input
-                  id="birthYear"
-                  type="number"
-                  value={birthYear}
-                  onChange={(e) => setBirthYear(e.target.value)}
-                  placeholder="VD: 1990"
-                  className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="deathYear" className="text-[#0F172A]">Năm mất (nếu có)</Label>
-                <Input
-                  id="deathYear"
-                  type="number"
-                  value={deathYear}
-                  onChange={(e) => setDeathYear(e.target.value)}
-                  placeholder="Để trống nếu còn sống"
-                  className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label className="text-[#0F172A]">Giới tính</Label>
-                <Select value={gender} onValueChange={(v: "male" | "female") => setGender(v)}>
-                  <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    sideOffset={8}
-                    className="z-[80] border-[#E2E8F0] bg-white shadow-xl"
-                  >
-                    <SelectItem value="male">Nam</SelectItem>
-                    <SelectItem value="female">Nữ</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
-                <Input
-                  id="imageUrl"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label className="text-[#0F172A]">Cha/Mẹ</Label>
-                <Select value={parentId || "none"} onValueChange={handleParentChange}>
-                  <SelectTrigger
-                    disabled={lockParentSelection}
-                    className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <SelectValue placeholder="Chọn cha/mẹ..." />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    sideOffset={8}
-                    className="z-[80] border-[#E2E8F0] bg-white shadow-xl"
-                  >
-                    <SelectItem value="none">Không có (Tổ tiên)</SelectItem>
-                    {parents.map((parent) => (
-                      <SelectItem key={parent.id} value={parent.id}>
-                        {parent.name} (Đời {parent.generation})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {lockParentSelection && (
-                  <p className="text-xs text-[#64748B]">
-                    Đang thêm vợ/chồng nên không chọn quan hệ cha/mẹ cho thành viên này.
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label className="text-[#0F172A]">Đời thứ</Label>
-                <Input
-                  type="number"
-                  value={generation}
-                  onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
-                  min={-1}
-                  max={20}
-                  className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                />
+        {isDesktop ? (
+          <div className="grid gap-4 py-2 lg:grid-cols-2">
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-2 md:col-span-2">
+                  <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Nhập họ và tên..."
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="birthYear" className="text-[#0F172A]">Năm sinh</Label>
+                  <Input
+                    id="birthYear"
+                    type="number"
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    placeholder="VD: 1990"
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deathYear" className="text-[#0F172A]">Năm mất (nếu có)</Label>
+                  <Input
+                    id="deathYear"
+                    type="number"
+                    value={deathYear}
+                    onChange={(e) => setDeathYear(e.target.value)}
+                    placeholder="Để trống nếu còn sống"
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Giới tính</Label>
+                  <Select value={gender} onValueChange={(v: "male" | "female") => setGender(v)}>
+                    <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
+                      <SelectItem value="male">Nam</SelectItem>
+                      <SelectItem value="female">Nữ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
+                  <Input
+                    id="imageUrl"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label htmlFor="address" className="text-[#0F172A]">Địa chỉ</Label>
+                  <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Số nhà, đường..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="city" className="text-[#0F172A]">Thành phố</Label>
+                  <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="VD: Hà Nội" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="country" className="text-[#0F172A]">Quốc gia</Label>
+                  <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="VD: Việt Nam" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Vợ / Chồng</p>
-            <div className="mb-3 grid gap-2">
-              <Label htmlFor="spouseSearch" className="text-[#0F172A]">Tìm theo tên (lọc cùng đời)</Label>
-              <Input
-                id="spouseSearch"
-                value={spouseSearch}
-                onChange={(e) => setSpouseSearch(e.target.value)}
-                placeholder="Nhập tên để tìm..."
-                className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-              />
-              <p className="text-xs text-[#64748B]">
-                {normalizedSpouseSearch.length === 0
-                  ? "Nhập từ khóa để tìm nhanh. Khi chưa tìm, chỉ hiển thị người đã chọn."
-                  : `Hiển thị tối đa 30 kết quả. Tìm thấy ${spouseCandidates.length} mục.`}
-              </p>
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Cha/Mẹ</Label>
+                  <Select value={parentId || "none"} onValueChange={handleParentChange}>
+                    <SelectTrigger
+                      disabled={lockParentSelection}
+                      className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <SelectValue placeholder="Chọn cha/mẹ..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
+                      <SelectItem value="none">Không có (Tổ tiên)</SelectItem>
+                      {parents.map((parent) => (
+                        <SelectItem key={parent.id} value={parent.id}>
+                          {parent.name} (Đời {parent.generation})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {lockParentSelection && (
+                    <p className="text-xs text-[#64748B]">
+                      Đang thêm vợ/chồng nên không chọn quan hệ cha/mẹ cho thành viên này.
+                    </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Đời thứ</Label>
+                  <Input
+                    type="number"
+                    value={generation}
+                    onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
+                    min={-1}
+                    max={20}
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="max-h-44 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
-              {spouseCandidates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {normalizedSpouseSearch.length === 0
-                    ? "Chưa chọn vợ/chồng. Hãy nhập tên để tìm."
-                    : "Không có kết quả phù hợp."}
-                </p>
-              ) : (
-                spouseCandidates.map((candidate) => (
-                  <label
-                    key={candidate.id}
-                    className={[
-                      "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition",
-                      spouseIds.includes(candidate.id)
-                        ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
-                        : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
-                    ].join(" ")}
-                  >
-                    <span>
-                      {candidate.name} (Đời {candidate.generation})
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={spouseIds.includes(candidate.id)}
-                      onChange={() => toggleSpouse(candidate.id)}
-                      className="h-4 w-4"
+
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 lg:col-span-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Vợ / Chồng</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsSpouseSectionOpen((prev) => !prev)}
+                  className="h-8 border-[#E2E8F0] px-3 text-xs"
+                >
+                  {isSpouseSectionOpen ? "Thu gọn" : "Mở rộng"}
+                </Button>
+              </div>
+              {isSpouseSectionOpen && (
+                <>
+                  <div className="mb-3 mt-3 grid gap-2">
+                    <Label htmlFor="spouseSearch" className="text-[#0F172A]">Tìm theo tên (lọc cùng đời)</Label>
+                    <Input
+                      id="spouseSearch"
+                      value={spouseSearch}
+                      onChange={(e) => setSpouseSearch(e.target.value)}
+                      placeholder="Nhập tên để tìm..."
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
                     />
-                  </label>
-                ))
+                    <p className="text-xs text-[#64748B]">
+                      {normalizedSpouseSearch.length === 0
+                        ? "Nhập từ khóa để tìm nhanh. Khi chưa tìm, chỉ hiển thị người đã chọn."
+                        : `Hiển thị tối đa 30 kết quả. Tìm thấy ${spouseCandidates.length} mục.`}
+                    </p>
+                  </div>
+                  <div className="max-h-36 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                    {spouseCandidates.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {normalizedSpouseSearch.length === 0
+                          ? "Chưa chọn vợ/chồng. Hãy nhập tên để tìm."
+                          : "Không có kết quả phù hợp."}
+                      </p>
+                    ) : (
+                      spouseCandidates.map((candidate) => (
+                        <label
+                          key={candidate.id}
+                          className={[
+                            "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition",
+                            spouseIds.includes(candidate.id)
+                              ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                              : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                          ].join(" ")}
+                        >
+                          <span>
+                            {candidate.name} (Đời {candidate.generation})
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={spouseIds.includes(candidate.id)}
+                            onChange={() => toggleSpouse(candidate.id)}
+                            className="h-4 w-4"
+                          />
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </>
               )}
             </div>
+
+            {!hasValidYears && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 lg:col-span-2">
+                Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
+              </p>
+            )}
           </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-white px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+                Bước {mobileStep}/2
+              </p>
+              <div className="flex gap-1">
+                <span className={`h-2 w-6 rounded-full ${mobileStep === 1 ? "bg-[#16A34A]" : "bg-[#E2E8F0]"}`} />
+                <span className={`h-2 w-6 rounded-full ${mobileStep === 2 ? "bg-[#16A34A]" : "bg-[#E2E8F0]"}`} />
+              </div>
+            </div>
 
-          {!hasValidYears && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-              Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
-            </p>
+            {mobileStep === 1 ? (
+              <>
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
+                  <div className="grid gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
+                      <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nhập họ và tên..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="birthYear" className="text-[#0F172A]">Năm sinh</Label>
+                      <Input id="birthYear" type="number" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="VD: 1990" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="deathYear" className="text-[#0F172A]">Năm mất (nếu có)</Label>
+                      <Input id="deathYear" type="number" value={deathYear} onChange={(e) => setDeathYear(e.target.value)} placeholder="Để trống nếu còn sống" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-[#0F172A]">Giới tính</Label>
+                      <Select value={gender} onValueChange={(v: "male" | "female") => setGender(v)}>
+                        <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
+                          <SelectItem value="male">Nam</SelectItem>
+                          <SelectItem value="female">Nữ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
+                      <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="address" className="text-[#0F172A]">Địa chỉ</Label>
+                      <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Số nhà, đường..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="city" className="text-[#0F172A]">Thành phố</Label>
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="VD: Hà Nội" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="country" className="text-[#0F172A]">Quốc gia</Label>
+                      <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="VD: Việt Nam" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
+                  <div className="grid gap-3">
+                    <div className="grid gap-2">
+                      <Label className="text-[#0F172A]">Cha/Mẹ</Label>
+                      <Select value={parentId || "none"} onValueChange={handleParentChange}>
+                        <SelectTrigger
+                          disabled={lockParentSelection}
+                          className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <SelectValue placeholder="Chọn cha/mẹ..." />
+                        </SelectTrigger>
+                        <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
+                          <SelectItem value="none">Không có (Tổ tiên)</SelectItem>
+                          {parents.map((parent) => (
+                            <SelectItem key={parent.id} value={parent.id}>
+                              {parent.name} (Đời {parent.generation})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-[#0F172A]">Đời thứ</Label>
+                      <Input type="number" value={generation} onChange={(e) => setGeneration(parseInt(e.target.value) || 1)} min={-1} max={20} className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Vợ / Chồng</p>
+                <div className="mb-3 grid gap-2">
+                  <Label htmlFor="spouseSearch" className="text-[#0F172A]">Tìm theo tên (lọc cùng đời)</Label>
+                  <Input
+                    id="spouseSearch"
+                    value={spouseSearch}
+                    onChange={(e) => setSpouseSearch(e.target.value)}
+                    placeholder="Nhập tên để tìm..."
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
+                </div>
+                <div className="max-h-56 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
+                  {spouseCandidates.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {normalizedSpouseSearch.length === 0
+                        ? "Chưa chọn vợ/chồng. Hãy nhập tên để tìm."
+                        : "Không có kết quả phù hợp."}
+                    </p>
+                  ) : (
+                    spouseCandidates.map((candidate) => (
+                      <label
+                        key={candidate.id}
+                        className={[
+                          "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition",
+                          spouseIds.includes(candidate.id)
+                            ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                            : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                        ].join(" ")}
+                      >
+                        <span>
+                          {candidate.name} (Đời {candidate.generation})
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={spouseIds.includes(candidate.id)}
+                          onChange={() => toggleSpouse(candidate.id)}
+                          className="h-4 w-4"
+                        />
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!hasValidYears && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
+              </p>
+            )}
+          </div>
+        )}
+
+        <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+          {!isDesktop && (
+            <div className="flex w-full gap-2 sm:w-auto">
+              {mobileStep === 2 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMobileStep(1)}
+                  className="flex-1 border-[#E2E8F0] sm:flex-none"
+                >
+                  Quay lại
+                </Button>
+              )}
+              {mobileStep === 1 && (
+                <Button
+                  type="button"
+                  onClick={() => setMobileStep(2)}
+                  className="flex-1 bg-[#16A34A] text-white hover:bg-[#15803D] sm:flex-none"
+                >
+                  Tiếp tục
+                </Button>
+              )}
+            </div>
           )}
-        </div>
-
-        <DialogFooter className="mt-2 flex gap-2">
           {member && onDelete && (
             <Button variant="destructive" onClick={onDelete} className="mr-auto">
               Xóa
@@ -303,9 +511,11 @@ export const MemberDialog = ({
           <Button variant="outline" onClick={onClose} className="border-[#E2E8F0]">
             Hủy
           </Button>
-          <Button onClick={handleSave} disabled={!isValid} className="bg-[#16A34A] text-white hover:bg-[#15803D]">
-            {member ? "Lưu thay đổi" : "Thêm mới"}
-          </Button>
+          {(isDesktop || mobileStep === 2) && (
+            <Button onClick={handleSave} disabled={!isValid} className="bg-[#16A34A] text-white hover:bg-[#15803D]">
+              {member ? "Lưu thay đổi" : "Thêm mới"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

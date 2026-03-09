@@ -27,9 +27,9 @@ export default function Topbar() {
     const navLinks = [
         { name: "Đóng Góp", icon: FaHome, path: "/donate" },
         { name: "Mộ Phần", icon: FaSitemap, path: "/tomb" },
-        { name: "Tưởng Niệm", icon: FaMap, path: "/memory" },
+        { name: "Tưởng Niệm", icon: FaMap, path: "/memorial" },
         { name: "Ký Ức", icon: FaMap, path: "/memory" },
-        { name: "Tư Liệu", icon: FaMap, path: "/memory" },
+        { name: "Tư Liệu", icon: FaMap, path: "/media" },
     ];
 
     const notifications = [

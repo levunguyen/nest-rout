@@ -1,259 +1,350 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MapPin, Search, Users, RotateCcw } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { MapPin, Search } from "lucide-react";
 
-interface FamilyMember {
-    id: string
-    name: string
-    city: string
-    state: string
-    relationship: string
-    age: number
-    latitude: number
-    longitude: number
+interface ApiFamilyMember {
+  id: string;
+  fullName: string;
+  relation?: string | null;
+  birthYear?: number | null;
+  deathYear?: number | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
 }
 
-const familyMembers: FamilyMember[] = [
-    {
-        id: "1",
-        name: "Robert Johnson",
-        city: "Kansas City",
-        state: "MO",
-        relationship: "Grandfather",
-        age: 85,
-        latitude: 39.0997,
-        longitude: -95.6789,
-    },
-    {
-        id: "2",
-        name: "Margaret Johnson",
-        city: "Kansas City",
-        state: "MO",
-        relationship: "Grandmother",
-        age: 82,
-        latitude: 39.1,
-        longitude: -95.68,
-    },
-    {
-        id: "3",
-        name: "James Anderson",
-        city: "Jefferson City",
-        state: "MO",
-        relationship: "Father",
-        age: 58,
-        latitude: 38.2527,
-        longitude: -92.2352,
-    },
-    {
-        id: "4",
-        name: "Elizabeth Parker",
-        city: "Topeka",
-        state: "KS",
-        relationship: "Aunt",
-        age: 56,
-        latitude: 38.8816,
-        longitude: -96.7265,
-    },
-    {
-        id: "5",
-        name: "Sarah Anderson",
-        city: "Tulsa",
-        state: "OK",
-        relationship: "Sister",
-        age: 35,
-        latitude: 36.1627,
-        longitude: -95.9978,
-    },
-    {
-        id: "6",
-        name: "Michael Anderson",
-        city: "Tulsa",
-        state: "OK",
-        relationship: "Brother",
-        age: 32,
-        latitude: 36.163,
-        longitude: -95.998,
-    },
-]
-
-const getUniqueCities = (members: FamilyMember[]) => {
-    return Array.from(new Set(members.map((m) => `${m.city}, ${m.state}`))).sort()
+interface MemberItem {
+  id: string;
+  name: string;
+  relation: string;
+  age: number | null;
+  address?: string;
+  city?: string;
+  country?: string;
 }
 
-const getCityCoordinates = (city: string) => {
-    const cityMap: { [key: string]: { lat: number; lng: number } } = {
-        "Kansas City, MO": { lat: 39.0997, lng: -95.6789 },
-        "Jefferson City, MO": { lat: 38.2527, lng: -92.2352 },
-        "Topeka, KS": { lat: 38.8816, lng: -96.7265 },
-        "Tulsa, OK": { lat: 36.1627, lng: -95.9978 },
-    }
-    return cityMap[city] || { lat: 39.0997, lng: -95.6789 }
+interface GeoPoint {
+  lat: number;
+  lng: number;
 }
+
+interface MarkerItem {
+  id: string;
+  name: string;
+  relation: string;
+  lat: number;
+  lng: number;
+  age: number | null;
+  isActive: boolean;
+}
+
+const LeafletFamilyMap = dynamic(
+  () =>
+    import("./components/LeafletFamilyMap").then((mod) => ({
+      default: mod.LeafletFamilyMap,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm text-[#64748B]">
+        Đang tải bản đồ...
+      </div>
+    ),
+  },
+);
+
+const calcAge = (birthYear?: number | null, deathYear?: number | null) => {
+  if (!birthYear || birthYear <= 0) return null;
+  const currentYear = new Date().getFullYear();
+  const finalYear = deathYear && deathYear > 0 ? deathYear : currentYear;
+  const age = finalYear - birthYear;
+  return age > 0 ? age : null;
+};
+
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const jitterAround = (center: GeoPoint, seed: string, index: number) => {
+  const h = hashString(seed);
+  const angle = ((h % 360) * Math.PI) / 180 + index * 0.55;
+  const distance = 0.0012 + ((h % 5) * 0.00045);
+  return {
+    lat: center.lat + Math.cos(angle) * distance,
+    lng: center.lng + Math.sin(angle) * distance,
+  };
+};
 
 export default function MapsPage() {
-    const [selectedCity, setSelectedCity] = useState("")
+  const router = useRouter();
+  const geoCacheRef = useRef<Record<string, GeoPoint>>({});
 
-    const uniqueCities = getUniqueCities(familyMembers)
+  const [members, setMembers] = useState<MemberItem[]>([]);
+  const [cityInput, setCityInput] = useState("");
+  const [countryInput, setCountryInput] = useState("");
+  const [appliedCity, setAppliedCity] = useState("");
+  const [appliedCountry, setAppliedCountry] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null);
+  const [centerPoint, setCenterPoint] = useState<GeoPoint>({ lat: 16.0471, lng: 108.2068 });
+  const [memberMarkerMap, setMemberMarkerMap] = useState<Record<string, GeoPoint>>({});
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [isResolvingMap, setIsResolvingMap] = useState(false);
+  const [error, setError] = useState("");
 
-    const coords = selectedCity ? getCityCoordinates(selectedCity) : { lat: 39.0997, lng: -95.6789 }
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      setIsLoadingMembers(true);
+      setError("");
+      try {
+        const response = await fetch("/api/family-members", {
+          method: "GET",
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
 
-    const visibleMembers = selectedCity
-        ? familyMembers.filter((m) => `${m.city}, ${m.state}` === selectedCity)
-        : []
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (!response.ok) {
+          setError(payload?.error ?? "Không thể tải dữ liệu bản đồ.");
+          setMembers([]);
+          return;
+        }
 
-    const averageAge =
-        visibleMembers.length === 0
-            ? 0
-            : Math.round(visibleMembers.reduce((sum, m) => sum + m.age, 0) / visibleMembers.length)
+        const rows = Array.isArray(payload?.data) ? (payload.data as ApiFamilyMember[]) : [];
+        const mapped = rows.map((item) => ({
+          id: item.id,
+          name: item.fullName,
+          relation: item.relation?.trim() || "Thành viên",
+          age: calcAge(item.birthYear, item.deathYear),
+          address: item.address?.trim() || undefined,
+          city: item.city?.trim() || undefined,
+          country: item.country?.trim() || undefined,
+        }));
+        setMembers(mapped);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        setError("Không thể tải dữ liệu bản đồ.");
+        setMembers([]);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
 
-    const relationshipMap = new Map<string, number>()
-    visibleMembers.forEach((m) => {
-        relationshipMap.set(m.relationship, (relationshipMap.get(m.relationship) ?? 0) + 1)
-    })
-    const relationshipBreakdown = Array.from(relationshipMap.entries()).map(([label, count]) => ({ label, count }))
+    load();
+    return () => controller.abort();
+  }, [router]);
 
-    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${(coords.lng - 0.05).toFixed(4)}%2C${(coords.lat - 0.05).toFixed(4)}%2C${(coords.lng + 0.05).toFixed(4)}%2C${(coords.lat + 0.05).toFixed(4)}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`
+  const filteredMembers = useMemo(() => {
+    if (!hasSearched) return [];
+    const qCity = appliedCity.trim().toLowerCase();
+    const qCountry = appliedCountry.trim().toLowerCase();
+    return members.filter((member) => {
+      const city = (member.city ?? "").toLowerCase();
+      const country = (member.country ?? "").toLowerCase();
+      const cityOk = qCity ? city.includes(qCity) : true;
+      const countryOk = qCountry ? country.includes(qCountry) : true;
+      return cityOk && countryOk;
+    });
+  }, [appliedCity, appliedCountry, hasSearched, members]);
 
-    return (
-        <main className="min-h-screen bg-[#F8FAF8] p-4 text-[#0F172A] md:p-6">
-            <div className="mx-auto max-w-7xl space-y-5">
-                <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-[#16A34A]/30 bg-[#DCFCE7] px-3 py-1 text-xs font-medium text-[#166534]">
-                                <MapPin className="h-3.5 w-3.5" />
-                                Family location map
-                            </span>
-                            <h1 className="mt-3 text-3xl font-bold md:text-4xl">Bản đồ thành viên gia đình</h1>
-                            <p className="mt-2 text-sm text-[#475569]">
-                                Theo dõi vị trí thành viên theo thành phố và xem thông tin nhanh tại một màn hình.
-                            </p>
-                        </div>
+  useEffect(() => {
+    if (!hasSearched) {
+      setMemberMarkerMap({});
+      setActiveMarkerId(null);
+      return;
+    }
+    if (filteredMembers.length === 0) {
+      setMemberMarkerMap({});
+      setActiveMarkerId(null);
+      return;
+    }
 
-                        <div className="flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:items-end">
-                            <div className="flex-1">
-                                <label className="mb-2 block text-sm font-medium text-[#0F172A]">Tìm theo địa điểm</label>
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-                                    <select
-                                        value={selectedCity}
-                                        onChange={(e) => setSelectedCity(e.target.value)}
-                                        className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
-                                    >
-                                        <option value="">Chọn 1 thành phố...</option>
-                                        {uniqueCities.map((city) => (
-                                            <option key={city} value={city}>
-                                                {city}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedCity("")}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#0F172A] transition hover:bg-[#F8FAF8]"
-                            >
-                                <RotateCcw className="h-4 w-4 text-[#16A34A]" />
-                                Reset
-                            </button>
-                        </div>
-                    </div>
-                </section>
+    const run = async () => {
+      setIsResolvingMap(true);
+      const nextCache = geoCacheRef.current;
+      const markerMap: Record<string, GeoPoint> = {};
 
-                <section className="grid gap-5 lg:grid-cols-3">
-                    <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm lg:col-span-2">
-                        <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3">
-                            <h2 className="text-sm font-semibold text-[#0F172A]">Bản đồ khu vực</h2>
-                            <p className="text-xs text-[#475569]">
-                                {selectedCity ? `Đang xem: ${selectedCity}` : "Vui lòng chọn 1 thành phố"}
-                            </p>
-                        </div>
-                        <div className="h-[64vh] min-h-[420px]">
-                            <iframe
-                                title="Family map"
-                                width="100%"
-                                height="100%"
-                                frameBorder="0"
-                                scrolling="no"
-                                marginHeight={0}
-                                marginWidth={0}
-                                src={mapUrl}
-                                style={{ border: 0 }}
-                            />
-                        </div>
-                    </div>
+      const centerQuery = [appliedCity, appliedCountry].filter(Boolean).join(", ");
+      let center = centerQuery ? nextCache[centerQuery] : undefined;
+      if (!center && centerQuery.length > 1) {
+        const response = await fetch(`/api/geocode?q=${encodeURIComponent(centerQuery)}`, {
+          method: "GET",
+        });
+        const payload = await response.json().catch(() => ({}));
+        center = payload?.data
+          ? ({ lat: payload.data.lat, lng: payload.data.lng } as GeoPoint)
+          : undefined;
+        if (center) nextCache[centerQuery] = center;
+      }
+      if (!center) center = { lat: 16.0471, lng: 108.2068 };
 
-                    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
-                        <div className="mb-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAF8] p-3">
-                            <h2 className="text-sm font-semibold text-[#0F172A]">Thông tin thành phố</h2>
-                            {selectedCity ? (
-                                <>
-                                    <p className="mt-1 text-xs text-[#475569]">{selectedCity}</p>
-                                    <div className="mt-3 grid grid-cols-2 gap-2">
-                                        <div className="rounded-lg border border-[#E2E8F0] bg-white p-2">
-                                            <p className="text-[11px] text-[#475569]">Thành viên</p>
-                                            <p className="text-base font-semibold text-[#16A34A]">{visibleMembers.length}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-[#E2E8F0] bg-white p-2">
-                                            <p className="text-[11px] text-[#475569]">Tuổi trung bình</p>
-                                            <p className="text-base font-semibold text-[#16A34A]">{averageAge}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {relationshipBreakdown.map((item) => (
-                                            <span
-                                                key={item.label}
-                                                className="rounded-full border border-[#E2E8F0] bg-white px-2 py-1 text-[11px] text-[#475569]"
-                                            >
-                                                {item.label}: {item.count}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <p className="mt-1 text-xs text-[#64748B]">
-                                    Chọn một thành phố để xem danh sách và thống kê thành viên.
-                                </p>
-                            )}
-                        </div>
+      for (let index = 0; index < filteredMembers.length; index += 1) {
+        const member = filteredMembers[index];
+        const fullAddress = [member.address, member.city, member.country].filter(Boolean).join(", ");
+        let point: GeoPoint | undefined;
 
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-sm font-semibold text-[#0F172A]">Danh sách thành viên</h2>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-medium text-[#166534]">
-                                <Users className="h-3.5 w-3.5" />
-                                {visibleMembers.length}
-                            </span>
-                        </div>
-                        <div className="max-h-[58vh] space-y-3 overflow-auto pr-1">
-                            {!selectedCity && (
-                                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAF8] p-4 text-sm text-[#64748B]">
-                                    Chọn thành phố ở bộ lọc phía trên để hiển thị danh sách thành viên.
-                                </div>
-                            )}
-                            {selectedCity && visibleMembers.length === 0 && (
-                                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAF8] p-4 text-sm text-[#64748B]">
-                                    Không có thành viên nào trong thành phố này.
-                                </div>
-                            )}
-                            {visibleMembers.map((member) => (
-                                <article
-                                    key={member.id}
-                                    className="rounded-xl border border-[#E2E8F0] bg-[#F8FAF8] p-3"
-                                >
-                                    <p className="font-semibold text-[#0F172A]">{member.name}</p>
-                                    <p className="mt-1 text-xs text-[#475569]">{member.relationship} • {member.age} tuổi</p>
-                                    <div className="mt-2 inline-flex items-center gap-1 rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-xs text-[#166534]">
-                                        <MapPin className="h-3.5 w-3.5 text-[#16A34A]" />
-                                        {member.city}, {member.state}
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
+        if (fullAddress.length > 5) {
+          point = nextCache[fullAddress];
+          if (!point) {
+            const response = await fetch(`/api/geocode?q=${encodeURIComponent(fullAddress)}`, {
+              method: "GET",
+            });
+            const payload = await response.json().catch(() => ({}));
+            point = payload?.data
+              ? ({ lat: payload.data.lat, lng: payload.data.lng } as GeoPoint)
+              : undefined;
+            if (point) nextCache[fullAddress] = point;
+          }
+        }
+
+        markerMap[member.id] = point ?? jitterAround(center, `${member.id}:${centerQuery}`, index);
+      }
+
+      geoCacheRef.current = nextCache;
+      setCenterPoint(center);
+      setMemberMarkerMap(markerMap);
+      setActiveMarkerId((prev) => prev ?? filteredMembers[0]?.id ?? null);
+      setIsResolvingMap(false);
+    };
+
+    run().catch(() => {
+      setIsResolvingMap(false);
+    });
+  }, [appliedCity, appliedCountry, filteredMembers, hasSearched]);
+
+  const mapMarkers: MarkerItem[] = useMemo(
+    () =>
+      filteredMembers
+        .map((member) => {
+          const point = memberMarkerMap[member.id];
+          if (!point) return null;
+          return {
+            id: member.id,
+            name: member.name,
+            relation: member.relation,
+            lat: point.lat,
+            lng: point.lng,
+            age: member.age,
+            isActive: activeMarkerId === member.id,
+          } satisfies MarkerItem;
+        })
+        .filter((item): item is MarkerItem => Boolean(item)),
+    [activeMarkerId, filteredMembers, memberMarkerMap],
+  );
+
+  const handleSearch = () => {
+    const city = cityInput.trim();
+    const country = countryInput.trim();
+    if (!city && !country) {
+      setHasSearched(false);
+      setAppliedCity("");
+      setAppliedCountry("");
+      return;
+    }
+    setAppliedCity(city);
+    setAppliedCountry(country);
+    setHasSearched(true);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#F8FAF8] p-4 text-[#0F172A] md:p-6">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#16A34A]/30 bg-[#DCFCE7] px-3 py-1 text-xs font-medium text-[#166534]">
+            <MapPin className="h-3.5 w-3.5" />
+            Family location map
+          </span>
+          <h1 className="mt-3 text-3xl font-bold md:text-4xl">Tra cứu thành viên theo địa điểm</h1>
+          <p className="mt-2 text-sm text-[#475569]">
+            Nhập thành phố và quốc gia, bấm Search để hiển thị marker các thành viên phù hợp.
+          </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+              <input
+                value={cityInput}
+                onChange={(event) => setCityInput(event.target.value)}
+                placeholder="Thành phố"
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
+              />
             </div>
-        </main>
-    )
+            <input
+              value={countryInput}
+              onChange={(event) => setCountryInput(event.target.value)}
+              placeholder="Quốc gia"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="rounded-lg bg-[#16A34A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#15803D]"
+            >
+              Search
+            </button>
+          </div>
+
+          {hasSearched && (
+            <p className="mt-3 text-sm text-[#475569]">
+              Kết quả: <span className="font-semibold text-[#166534]">{filteredMembers.length}</span> marker
+            </p>
+          )}
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+          <div className="h-[74vh] min-h-[520px]">
+            {!hasSearched ? (
+              <div className="flex h-full items-center justify-center p-6">
+                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAF8] px-5 py-4 text-center">
+                  <p className="font-semibold text-[#334155]">Chưa tìm kiếm</p>
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    Hãy nhập thành phố/quốc gia rồi bấm Search để xem marker.
+                  </p>
+                </div>
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="flex h-full items-center justify-center p-6">
+                <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAF8] px-5 py-4 text-center">
+                  <p className="font-semibold text-[#334155]">Không có dữ liệu phù hợp</p>
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    Thử đổi thành phố hoặc quốc gia để tìm kiếm lại.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <LeafletFamilyMap
+                center={centerPoint}
+                markers={mapMarkers}
+                onSelectMarker={setActiveMarkerId}
+              />
+            )}
+          </div>
+        </section>
+
+        {(isLoadingMembers || isResolvingMap) && (
+          <section className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#475569]">
+            {isLoadingMembers ? "Đang tải dữ liệu thành viên..." : "Đang định vị marker theo địa chỉ..."}
+          </section>
+        )}
+
+        {error && (
+          <section className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </section>
+        )}
+      </div>
+    </main>
+  );
 }

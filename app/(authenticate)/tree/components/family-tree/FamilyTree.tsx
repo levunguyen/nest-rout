@@ -19,6 +19,9 @@ interface ApiFamilyMember {
   gender?: ApiGender | null;
   birthYear?: number | null;
   deathYear?: number | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
   generation?: number | null;
   parentId?: string | null;
   spouseIds?: string[] | null;
@@ -30,6 +33,9 @@ const fromApiMember = (member: ApiFamilyMember): FamilyMember => ({
   name: member.fullName,
   birthYear: member.birthYear ?? 2000,
   deathYear: member.deathYear ?? undefined,
+  address: member.address ?? undefined,
+  city: member.city ?? undefined,
+  country: member.country ?? undefined,
   gender: member.gender === "FEMALE" ? "female" : "male",
   generation: member.generation ?? 1,
   parentId: member.parentId ?? undefined,
@@ -41,6 +47,9 @@ const toApiPayload = (member: Omit<FamilyMember, "id">) => ({
   fullName: member.name,
   birthYear: member.birthYear,
   deathYear: member.deathYear ?? undefined,
+  address: member.address?.trim() || undefined,
+  city: member.city?.trim() || undefined,
+  country: member.country?.trim() || undefined,
   gender: member.gender === "female" ? "FEMALE" : "MALE",
   generation: member.generation,
   parentId: member.parentId ?? undefined,

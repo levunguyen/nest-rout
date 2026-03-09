@@ -18,6 +18,9 @@ export const familyMemberCreateSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   birthYear: z.number().int().min(0).max(3000).optional(),
   deathYear: z.number().int().min(0).max(3000).optional(),
+  address: z.string().trim().max(255).optional(),
+  city: z.string().trim().max(120).optional(),
+  country: z.string().trim().max(120).optional(),
   generation: z.number().int().min(-1).max(20).default(1),
   parentId: z.string().trim().min(1).optional(),
   spouseIds: z.array(z.string().trim().min(1)).max(10).optional().default([]),
@@ -77,3 +80,14 @@ export const newsCommentCreateSchema = z.object({
 });
 
 export const newsCommentUpdateSchema = newsCommentCreateSchema.partial();
+
+export const mediaAssetCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  kind: z.enum(["image", "video"]),
+  category: z.string().trim().min(1).max(120),
+  usedBy: z.string().trim().min(1).max(120),
+  url: z.string().trim().min(1).max(2048),
+  sizeMb: z.number().min(0).max(5000).default(0),
+  mimeType: z.string().trim().max(120).optional(),
+  originalName: z.string().trim().max(255).optional(),
+});
