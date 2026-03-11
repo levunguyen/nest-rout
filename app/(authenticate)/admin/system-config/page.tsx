@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SystemConfiguration() {
+  const router = useRouter();
   const [settings, setSettings] = useState({
     language: "vi",
     dateFormat: "DD/MM/YYYY",
@@ -15,9 +17,119 @@ export default function SystemConfiguration() {
     enableCharts: true,
     enableMaps: true,
   });
+  const [activeFamilyTreeId, setActiveFamilyTreeId] = useState("");
+  const [familyTreeName, setFamilyTreeName] = useState("");
+  const [isLoadingFamilyTree, setIsLoadingFamilyTree] = useState(true);
+  const [isSavingFamilyTree, setIsSavingFamilyTree] = useState(false);
+  const [familyTreeError, setFamilyTreeError] = useState("");
+  const [familyTreeSuccess, setFamilyTreeSuccess] = useState("");
+
+  useEffect(() => {
+    const loadMe = async () => {
+      setIsLoadingFamilyTree(true);
+      setFamilyTreeError("");
+      try {
+        const response = await fetch("/api/auth/me", { method: "GET" });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (!response.ok) {
+          setFamilyTreeError(payload?.error ?? "Không thể tải thông tin gia phả.");
+          return;
+        }
+
+        const activeId = payload?.data?.activeFamilyTreeId as string | undefined;
+        const tenants = (payload?.data?.tenants ?? []) as Array<{ id: string; name: string }>;
+        const active = tenants.find((t) => t.id === activeId);
+        setActiveFamilyTreeId(activeId ?? "");
+        setFamilyTreeName(active?.name ?? "");
+      } catch {
+        setFamilyTreeError("Không thể tải thông tin gia phả.");
+      } finally {
+        setIsLoadingFamilyTree(false);
+      }
+    };
+
+    loadMe();
+  }, [router]);
+
+  const handleRenameFamilyTree = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFamilyTreeError("");
+    setFamilyTreeSuccess("");
+
+    const nextName = familyTreeName.trim();
+    if (!activeFamilyTreeId) {
+      setFamilyTreeError("Chưa có gia phả đang hoạt động.");
+      return;
+    }
+    if (nextName.length < 2) {
+      setFamilyTreeError("Tên gia phả cần ít nhất 2 ký tự.");
+      return;
+    }
+
+    setIsSavingFamilyTree(true);
+    try {
+      const response = await fetch("/api/tenants", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyTreeId: activeFamilyTreeId,
+          name: nextName,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (!response.ok) {
+        setFamilyTreeError(payload?.error ?? "Không thể đổi tên gia phả.");
+        return;
+      }
+
+      setFamilyTreeName(payload?.data?.name ?? nextName);
+      setFamilyTreeSuccess("Đã cập nhật tên gia phả.");
+    } catch {
+      setFamilyTreeError("Không thể đổi tên gia phả.");
+    } finally {
+      setIsSavingFamilyTree(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
+      <section className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#0F172A]">Tên gia phả hiện tại</h2>
+        <p className="mt-1 text-sm text-[#475569]">
+          Đặt tên rõ ràng để con cháu dễ nhận biết gia phả đang quản lý.
+        </p>
+
+        <form onSubmit={handleRenameFamilyTree} className="mt-4 space-y-3">
+          <input
+            value={familyTreeName}
+            onChange={(e) => setFamilyTreeName(e.target.value)}
+            disabled={isLoadingFamilyTree || isSavingFamilyTree}
+            placeholder={isLoadingFamilyTree ? "Đang tải..." : "Nhập tên gia phả"}
+            className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm disabled:bg-[#F8FAF8]"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={isLoadingFamilyTree || isSavingFamilyTree}
+              className="rounded-lg bg-[#16A34A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#15803D] disabled:opacity-60"
+            >
+              {isSavingFamilyTree ? "Đang lưu..." : "Đổi tên gia phả"}
+            </button>
+            {familyTreeSuccess ? <p className="text-sm text-[#166534]">{familyTreeSuccess}</p> : null}
+          </div>
+          {familyTreeError ? <p className="text-sm text-[#B91C1C]">{familyTreeError}</p> : null}
+        </form>
+      </section>
+
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
         <h1 className="text-3xl font-bold text-[#0F172A]">Cấu hình hệ thống</h1>
         <p className="mt-2 text-sm text-[#475569]">Quản lý cài đặt ngôn ngữ, database, lưu trữ và module hệ thống.</p>

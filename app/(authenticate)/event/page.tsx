@@ -5,14 +5,18 @@ import { CalendarPlus, ChevronLeft, ChevronRight, Clock3, Dot, PartyPopper, Penc
 import { useRouter } from "next/navigation";
 
 type EventType = "BIRTHDAY" | "ANNIVERSARY" | "GATHERING" | "OTHER";
+type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
 interface CalendarEvent {
   id: string;
   title: string;
   startsAt: string;
   type: EventType;
+  assigneeName?: string | null;
+  taskStatus?: TaskStatus;
   location?: string | null;
   description?: string | null;
+  _count?: { comments?: number; reactions?: number };
 }
 
 const eventTypeOptions: { value: EventType; label: string }[] = [
@@ -53,6 +57,8 @@ const createDefaultEventForm = () => ({
   date: formatDateInput(new Date()),
   time: "09:00",
   type: "GATHERING" as EventType,
+  taskStatus: "TODO" as TaskStatus,
+  assigneeName: "",
   location: "",
   description: "",
 });
@@ -176,6 +182,8 @@ export default function EventCalendarPage() {
       date: formatDateInput(d),
       time: formatTimeInput(d),
       type: event.type,
+      taskStatus: event.taskStatus ?? "TODO",
+      assigneeName: event.assigneeName ?? "",
       location: event.location ?? "",
       description: event.description ?? "",
     });
@@ -191,6 +199,8 @@ export default function EventCalendarPage() {
       const payload = {
         title: eventForm.title,
         type: eventForm.type,
+        taskStatus: eventForm.taskStatus,
+        assigneeName: eventForm.assigneeName || undefined,
         startsAt: startsAt.toISOString(),
         location: eventForm.location || undefined,
         description: eventForm.description || undefined,
@@ -286,6 +296,21 @@ export default function EventCalendarPage() {
                     {option.label}
                   </option>
                 ))}
+              </select>
+              <input
+                value={eventForm.assigneeName}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, assigneeName: e.target.value }))}
+                placeholder="Người phụ trách (tuỳ chọn)"
+                className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm md:col-span-2"
+              />
+              <select
+                value={eventForm.taskStatus}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, taskStatus: e.target.value as TaskStatus }))}
+                className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+              >
+                <option value="TODO">Chưa làm</option>
+                <option value="IN_PROGRESS">Đang làm</option>
+                <option value="DONE">Đã xong</option>
               </select>
               <input
                 value={eventForm.location}
@@ -395,7 +420,13 @@ export default function EventCalendarPage() {
                     <div key={event.id} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
                       <p className="font-medium text-[#0F172A]">{event.title}</p>
                       <p className="mt-1 text-xs text-[#64748B]">{new Date(event.startsAt).toLocaleString("vi-VN")}</p>
-                      {event.location ? (
+                    {event.assigneeName ? (
+                      <p className="mt-1 text-xs font-medium text-[#166534]">Phụ trách: {event.assigneeName}</p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-[#334155]">
+                      Trạng thái: {event.taskStatus === "DONE" ? "Đã xong" : event.taskStatus === "IN_PROGRESS" ? "Đang làm" : "Chưa làm"}
+                    </p>
+                    {event.location ? (
                         <p className="mt-1 inline-flex items-center gap-1 text-xs text-[#475569]">
                           <Dot className="h-4 w-4 text-[#16A34A]" />
                           {event.location}
@@ -434,6 +465,14 @@ export default function EventCalendarPage() {
                     <p className="mt-1 text-xs text-[#64748B]">
                       {new Date(event.startsAt).toLocaleString("vi-VN")}
                       {event.location ? ` • ${event.location}` : ""}
+                    </p>
+                    {event.assigneeName ? (
+                      <p className="mt-1 text-xs font-medium text-[#166534]">Phụ trách: {event.assigneeName}</p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-[#334155]">
+                      Trạng thái: {event.taskStatus === "DONE" ? "Đã xong" : event.taskStatus === "IN_PROGRESS" ? "Đang làm" : "Chưa làm"}
+                      {" • "}
+                      {event._count?.comments ?? 0} bình luận • {event._count?.reactions ?? 0} tương tác
                     </p>
                     <span className={`mt-2 inline-flex rounded px-2 py-0.5 text-[11px] font-semibold ${getEventStyle(event.type)}`}>
                       {eventTypeOptions.find((t) => t.value === event.type)?.label}

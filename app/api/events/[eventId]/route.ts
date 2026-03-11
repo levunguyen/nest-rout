@@ -20,6 +20,14 @@ export async function GET(request: NextRequest, context: EventRouteContext) {
     const { eventId } = await context.params;
     const event = await prisma.event.findFirst({
       where: { id: eventId, familyTreeId: session.activeFamilyTreeId! },
+      include: {
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
+      },
     });
 
     if (!event) {
@@ -53,7 +61,15 @@ export async function PATCH(request: NextRequest, context: EventRouteContext) {
       data: {
         title: parsed.data.title,
         description: parsed.data.description,
+        assigneeName: parsed.data.assigneeName,
         type: parsed.data.type,
+        taskStatus: parsed.data.taskStatus,
+        completedAt:
+          parsed.data.taskStatus === "DONE"
+            ? new Date()
+            : parsed.data.taskStatus
+              ? null
+              : undefined,
         startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : undefined,
         endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : undefined,
         location: parsed.data.location,
@@ -66,6 +82,14 @@ export async function PATCH(request: NextRequest, context: EventRouteContext) {
 
     const event = await prisma.event.findFirst({
       where: { id: eventId, familyTreeId: session.activeFamilyTreeId! },
+      include: {
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
+      },
     });
     return NextResponse.json({ data: event });
   } catch (err) {

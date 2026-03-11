@@ -21,10 +21,25 @@ type ApiNewsPost = {
   _count?: { comments: number };
 };
 
+type MePayload = {
+  activeFamilyTreeId?: string | null;
+  tenants?: { id: string; role: "OWNER" | "ADMIN" | "EDITOR" | "VIEWER" }[];
+};
+
 const formatDate = (value: string) => new Date(value).toLocaleDateString("vi-VN");
 const formatReadTime = (minutes: number) => `${minutes} phút đọc`;
 
-function LeadStory({ post }: { post: ApiNewsPost }) {
+function LeadStory({
+  post,
+  canManagePins,
+  isPinToggling,
+  onTogglePin,
+}: {
+  post: ApiNewsPost;
+  canManagePins: boolean;
+  isPinToggling: boolean;
+  onTogglePin: (post: ApiNewsPost) => void;
+}) {
   return (
     <article className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
       <div className="relative h-72 md:h-96">
@@ -57,6 +72,16 @@ function LeadStory({ post }: { post: ApiNewsPost }) {
           Đọc toàn bộ bài
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {canManagePins ? (
+          <button
+            type="button"
+            disabled={isPinToggling}
+            onClick={() => onTogglePin(post)}
+            className="ml-3 inline-flex items-center rounded-full border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-1 text-xs font-semibold text-[#0F172A] disabled:opacity-60"
+          >
+            {isPinToggling ? "Đang cập nhật..." : post.featured ? "Bỏ ghim" : "Ghim bài"}
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -74,7 +99,17 @@ function SideHeadline({ post }: { post: ApiNewsPost }) {
   );
 }
 
-function NewsRow({ post }: { post: ApiNewsPost }) {
+function NewsRow({
+  post,
+  canManagePins,
+  isPinToggling,
+  onTogglePin,
+}: {
+  post: ApiNewsPost;
+  canManagePins: boolean;
+  isPinToggling: boolean;
+  onTogglePin: (post: ApiNewsPost) => void;
+}) {
   return (
     <article className="grid gap-4 border-b border-[#E2E8F0] pb-5 md:grid-cols-4">
       <div className="relative h-40 overflow-hidden rounded-xl md:col-span-1">
@@ -89,6 +124,16 @@ function NewsRow({ post }: { post: ApiNewsPost }) {
         <div className="flex items-center gap-4 text-xs text-[#64748B]">
           <span>{formatDate(post.publishedAt)}</span>
           <span>{formatReadTime(post.readTimeMinutes)}</span>
+          {canManagePins ? (
+            <button
+              type="button"
+              disabled={isPinToggling}
+              onClick={() => onTogglePin(post)}
+              className="rounded-full border border-[#E2E8F0] bg-[#F8FAF8] px-2.5 py-1 font-semibold text-[#0F172A] disabled:opacity-60"
+            >
+              {isPinToggling ? "Đang cập nhật..." : post.featured ? "Bỏ ghim" : "Ghim"}
+            </button>
+          ) : null}
         </div>
       </div>
     </article>
@@ -100,26 +145,35 @@ export default function NewsPage() {
   const [posts, setPosts] = useState<ApiNewsPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canManagePins, setCanManagePins] = useState(false);
+  const [pinTogglingId, setPinTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/news?limit=50", { method: "GET" });
-        const payload = await response.json().catch(() => ({}));
+        const [newsResponse, meResponse] = await Promise.all([
+          fetch("/api/news?limit=50", { method: "GET" }),
+          fetch("/api/auth/me", { method: "GET" }),
+        ]);
+        const payload = await newsResponse.json().catch(() => ({}));
+        const mePayload = await meResponse.json().catch(() => ({}));
 
-        if (response.status === 401) {
+        if (newsResponse.status === 401 || meResponse.status === 401) {
           router.push("/login");
           return;
         }
 
-        if (!response.ok) {
+        if (!newsResponse.ok) {
           setError(payload?.error || "Không thể tải danh sách tin tức");
           setPosts([]);
           return;
         }
 
+        const meData = (mePayload?.data ?? {}) as MePayload;
+        const activeTenant = meData.tenants?.find((tenant) => tenant.id === meData.activeFamilyTreeId);
+        setCanManagePins(Boolean(activeTenant && ["OWNER", "ADMIN", "EDITOR"].includes(activeTenant.role)));
         setPosts((payload?.data ?? []) as ApiNewsPost[]);
       } catch {
         setError("Lỗi kết nối khi tải tin tức");
@@ -131,6 +185,42 @@ export default function NewsPage() {
 
     load();
   }, [router]);
+
+  const handleTogglePin = async (post: ApiNewsPost) => {
+    if (!canManagePins || pinTogglingId) return;
+    const nextFeatured = !post.featured;
+    const previousPosts = posts;
+    setPinTogglingId(post.id);
+    setError(null);
+    setPosts((prev) =>
+      prev.map((item) =>
+        item.id === post.id
+          ? {
+              ...item,
+              featured: nextFeatured,
+            }
+          : item,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/news/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featured: nextFeatured }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPosts(previousPosts);
+        setError(payload?.error || "Không thể cập nhật trạng thái ghim.");
+      }
+    } catch {
+      setPosts(previousPosts);
+      setError("Không thể cập nhật trạng thái ghim.");
+    } finally {
+      setPinTogglingId(null);
+    }
+  };
 
   const { leadPost, sidePosts, latestPosts, categories } = useMemo(() => {
     if (posts.length === 0) {
@@ -179,7 +269,16 @@ export default function NewsPage() {
         ) : (
           <>
             <section className="grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">{leadPost ? <LeadStory post={leadPost} /> : null}</div>
+              <div className="lg:col-span-2">
+                {leadPost ? (
+                  <LeadStory
+                    post={leadPost}
+                    canManagePins={canManagePins}
+                    isPinToggling={pinTogglingId === leadPost.id}
+                    onTogglePin={handleTogglePin}
+                  />
+                ) : null}
+              </div>
               <aside className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-bold text-[#0F172A]">Tin nhanh</h2>
                 <div className="mt-4 space-y-4">
@@ -195,7 +294,13 @@ export default function NewsPage() {
                 <h2 className="text-2xl font-bold text-[#0F172A]">Mới nhất</h2>
                 <div className="mt-5 space-y-5">
                   {latestPosts.map((post) => (
-                    <NewsRow key={post.id} post={post} />
+                    <NewsRow
+                      key={post.id}
+                      post={post}
+                      canManagePins={canManagePins}
+                      isPinToggling={pinTogglingId === post.id}
+                      onTogglePin={handleTogglePin}
+                    />
                   ))}
                 </div>
               </div>

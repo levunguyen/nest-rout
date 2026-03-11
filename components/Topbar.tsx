@@ -10,6 +10,7 @@ import {
     FaHome,
     FaSitemap,
     FaMap,
+    FaTasks,
     FaUser,
     FaCog,
     FaSignOutAlt,
@@ -20,6 +21,13 @@ export default function Topbar() {
     const router = useRouter();
     const [profileOpen, setProfileOpen] = useState(false);
     const [notiOpen, setNotiOpen] = useState(false);
+    const [notifications, setNotifications] = useState<Array<{
+        id: string;
+        title: string;
+        description: string;
+        time: string;
+        unread: boolean;
+    }>>([]);
 
     const profileRef = useRef<HTMLDivElement>(null);
     const notiRef = useRef<HTMLDivElement>(null);
@@ -30,23 +38,6 @@ export default function Topbar() {
         { name: "Tưởng Niệm", icon: FaMap, path: "/memorial" },
         { name: "Ký Ức", icon: FaMap, path: "/memory" },
         { name: "Tư Liệu", icon: FaMap, path: "/media" },
-    ];
-
-    const notifications = [
-        {
-            id: 1,
-            title: "Thêm thành viên mới",
-            description: "Nguyễn Văn A đã được thêm vào cây",
-            time: "5 phút trước",
-            unread: true,
-        },
-        {
-            id: 2,
-            title: "Cập nhật thông tin",
-            description: "Trần Thị B vừa được chỉnh sửa hồ sơ",
-            time: "1 giờ trước",
-            unread: false,
-        },
     ];
 
     const hasUnread = notifications.some((n) => n.unread);
@@ -61,6 +52,31 @@ export default function Topbar() {
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    useEffect(() => {
+        const loadNotifications = async () => {
+            try {
+                const response = await fetch("/api/notifications", { cache: "no-store" });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) return;
+
+                const rows = Array.isArray(payload?.data) ? payload.data : [];
+                setNotifications(
+                    rows.slice(0, 6).map((row: { id: string; title: string; description: string; createdAt: string }) => ({
+                        id: row.id,
+                        title: row.title,
+                        description: row.description,
+                        time: new Date(row.createdAt).toLocaleString("vi-VN"),
+                        unread: true,
+                    })),
+                );
+            } catch {
+                setNotifications([]);
+            }
+        };
+
+        loadNotifications();
     }, []);
 
     const handleLogout = async () => {
@@ -187,6 +203,12 @@ export default function Topbar() {
                                     transition={{ duration: 0.18 }}
                                     className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg"
                                 >
+                                    <Link
+                                        href="/tasks"
+                                        className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-100"
+                                    >
+                                        <FaTasks /> Công việc
+                                    </Link>
                                     <Link
                                         href="/profile"
                                         className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-100"

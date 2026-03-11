@@ -39,6 +39,11 @@ export const switchTenantSchema = z.object({
   familyTreeId: z.string().trim().min(1),
 });
 
+export const renameTenantSchema = z.object({
+  familyTreeId: z.string().trim().min(1),
+  name: z.string().trim().min(2).max(120),
+});
+
 export const createInvitationSchema = z.object({
   email: z.string().trim().email().max(255).toLowerCase(),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]).default("VIEWER"),
@@ -52,6 +57,8 @@ export const acceptInvitationSchema = z.object({
 export const eventCreateSchema = z.object({
   title: z.string().trim().min(2).max(180),
   description: z.string().trim().max(2000).optional(),
+  assigneeName: z.string().trim().min(2).max(120).optional(),
+  taskStatus: z.enum(["TODO", "IN_PROGRESS", "DONE"]).default("TODO"),
   type: z.enum(["BIRTHDAY", "ANNIVERSARY", "GATHERING", "OTHER"]).default("OTHER"),
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime().optional(),
@@ -59,6 +66,14 @@ export const eventCreateSchema = z.object({
 });
 
 export const eventUpdateSchema = eventCreateSchema.partial();
+
+export const eventReactionSchema = z.object({
+  type: z.enum(["LIKE", "HEART"]),
+});
+
+export const eventCommentCreateSchema = z.object({
+  content: z.string().trim().min(2).max(500),
+});
 
 export const newsPostCreateSchema = z.object({
   title: z.string().trim().min(2).max(180),

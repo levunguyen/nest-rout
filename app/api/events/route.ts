@@ -33,6 +33,14 @@ export async function GET(request: NextRequest) {
     const events = await prisma.event.findMany({
       where,
       orderBy: { startsAt: "asc" },
+      include: {
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json({ data: events });
@@ -60,12 +68,23 @@ export async function POST(request: NextRequest) {
       data: {
         title: parsed.data.title,
         description: parsed.data.description,
+        assigneeName: parsed.data.assigneeName,
+        taskStatus: parsed.data.taskStatus,
+        completedAt: parsed.data.taskStatus === "DONE" ? new Date() : null,
         type: parsed.data.type,
         startsAt: new Date(parsed.data.startsAt),
         endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : undefined,
         location: parsed.data.location,
         familyTreeId: session.activeFamilyTreeId!,
         createdById: session.user.id,
+      },
+      include: {
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
       },
     });
 
