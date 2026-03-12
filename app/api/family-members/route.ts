@@ -55,23 +55,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const familyTreeId = session.activeFamilyTreeId!;
+    let parentGeneration: number | null = null;
+
     if (parsed.data.parentId) {
       const parent = await prisma.familyMember.findFirst({
         where: {
           id: parsed.data.parentId,
-          familyTreeId: session.activeFamilyTreeId!,
+          familyTreeId,
         },
-        select: { id: true },
+        select: { id: true, generation: true },
       });
       if (!parent) {
         return NextResponse.json({ error: "Parent not found in active tenant" }, { status: 400 });
+      }
+      parentGeneration = parent.generation;
+    }
+
+    if (parentGeneration !== null && parsed.data.generation !== parentGeneration + 1) {
+      return NextResponse.json(
+        { error: "Generation must equal parent generation + 1" },
+        { status: 400 },
+      );
+    }
+
+    const uniqueSpouseIds = Array.from(new Set(parsed.data.spouseIds ?? []));
+    if (uniqueSpouseIds.length > 0) {
+      const spouses = await prisma.familyMember.findMany({
+        where: {
+          id: { in: uniqueSpouseIds },
+          familyTreeId,
+        },
+        select: { id: true },
+      });
+      if (spouses.length !== uniqueSpouseIds.length) {
+        return NextResponse.json(
+          { error: "One or more spouse IDs are invalid for active tenant" },
+          { status: 400 },
+        );
       }
     }
 
     const member = await prisma.familyMember.create({
       data: {
         ...parsed.data,
-        familyTreeId: session.activeFamilyTreeId!,
+        spouseIds: uniqueSpouseIds,
+        familyTreeId,
         createdById: session.user.id,
       },
     });

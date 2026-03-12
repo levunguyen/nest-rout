@@ -81,10 +81,10 @@ export const FamilyTreeCanvas = ({
   const visibleMembers = useMemo(() => {
     let filtered = members;
 
-    // Filter by generation if selected - show selected generation + 3 generations after
+    // Filter by generation: selected generation + next 3 generations
     if (selectedGeneration !== null) {
-      filtered = filtered.filter(m =>
-        m.generation >= selectedGeneration && m.generation <= selectedGeneration + 3
+      filtered = filtered.filter(
+        (m) => m.generation >= selectedGeneration && m.generation <= selectedGeneration + 3,
       );
     }
 
@@ -679,31 +679,26 @@ export const FamilyTreeCanvas = ({
   // Auto-center on first search match when search query changes
   useEffect(() => {
     if (searchQuery.trim() !== "" && searchQuery !== prevSearchQuery.current) {
-      const topOffset = 0; // must match the `top` style of .tree-content
-
-      // Find the first matching member (in currently visible nodes)
       const matchedMember = visibleMembers.find((m) =>
-        m.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+        m.name.toLowerCase().includes(searchQuery.toLowerCase().trim()),
       );
-
-      if (matchedMember) {
-        const pos = positions.get(matchedMember.id);
-        if (pos) {
-          const containerHeight = containerRef.current?.clientHeight || 600;
-
-          // X axis is centered by `left: 50%`, so we only need to offset by the member position.
-          const targetX = -(pos.x * zoom) - (CARD_WIDTH * zoom / 2);
-          const targetY =
-            containerHeight / 2 -
-            topOffset -
-            pos.y * zoom -
-            (CARD_HEIGHT * zoom) / 2;
-
-          requestAnimationFrame(() => {
-            setPosition({ x: targetX, y: targetY });
-          });
-        }
+      if (!matchedMember) {
+        prevSearchQuery.current = searchQuery;
+        return;
       }
+      const pos = positions.get(matchedMember.id);
+      if (!pos) {
+        prevSearchQuery.current = searchQuery;
+        return;
+      }
+
+      const containerHeight = containerRef.current?.clientHeight || 600;
+      const targetX = -(pos.x * zoom) - (CARD_WIDTH * zoom / 2);
+      const targetY = containerHeight / 2 - pos.y * zoom - (CARD_HEIGHT * zoom) / 2;
+
+      requestAnimationFrame(() => {
+        setPosition({ x: targetX, y: targetY });
+      });
     }
     prevSearchQuery.current = searchQuery;
   }, [searchQuery, visibleMembers, positions, zoom]);
@@ -768,12 +763,18 @@ export const FamilyTreeCanvas = ({
                     clientY: e.clientY,
                   });
                 }}
+                onContextAction={(position) => {
+                  onMemberContextMenu?.(member, position);
+                }}
                 onMouseEnter={() => onMemberHover?.(member.id)}
                 onMouseLeave={() => onMemberHover?.(null)}
               />
             </div>
           );
         })}
+      </div>
+      <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-[#E2E8F0] bg-white/90 px-3 py-1.5 text-xs text-[#475569] shadow-sm">
+        Kéo để di chuyển • Wheel để zoom • Click phải để thêm quan hệ
       </div>
     </div>
   );

@@ -45,6 +45,7 @@ interface FamilyMemberCardProps {
   isSearchMatch?: boolean;
   onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLDivElement>;
+  onContextAction?: (position: { clientX: number; clientY: number }) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
@@ -56,19 +57,38 @@ export const FamilyMemberCard = ({
   isSearchMatch,
   onClick,
   onContextMenu,
+  onContextAction,
   onMouseEnter,
   onMouseLeave,
 }: FamilyMemberCardProps) => {
   const isMale = member.gender === "male";
+  const isFemale = member.gender === "female";
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Thành viên ${member.name}`}
       onClick={onClick}
       onContextMenu={onContextMenu}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+        if ((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu") {
+          e.preventDefault();
+          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+          onContextAction?.({
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.bottom - 4,
+          });
+        }
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "relative cursor-pointer transition-all duration-200",
+        "relative cursor-pointer rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14532D]/40",
         "hover:scale-105",
         isHighlighted && "scale-110",
         isSearchMatch && "scale-110"
@@ -91,7 +111,9 @@ export const FamilyMemberCard = ({
               "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden",
               isMale
                 ? "border-emerald-400 bg-emerald-50"
-                : "border-rose-300 bg-rose-50"
+                : isFemale
+                  ? "border-rose-300 bg-rose-50"
+                  : "border-slate-300 bg-slate-100"
             )}
           >
             {member.imageUrl ? (
@@ -103,8 +125,10 @@ export const FamilyMemberCard = ({
               />
             ) : isMale ? (
               <MaleIcon className="w-6 h-6 text-emerald-600" />
-            ) : (
+            ) : isFemale ? (
               <FemaleIcon className="w-6 h-6 text-rose-500" />
+            ) : (
+              <span className="text-xs font-semibold text-slate-600">?</span>
             )}
           </div>
           {/* Search match indicator */}
@@ -140,9 +164,9 @@ export const FamilyMemberCard = ({
         {/* Birth - Death Years */}
         <p className={cn(
           "mt-0.5 text-center text-[10px]",
-          isMale ? "text-emerald-700" : "text-rose-600"
+          isMale ? "text-emerald-700" : isFemale ? "text-rose-600" : "text-slate-600"
         )}>
-          {member.birthYear}
+          {member.birthYear ?? "?"}
           {member.deathYear ? ` - ${member.deathYear}` : ""}
         </p>
       </div>

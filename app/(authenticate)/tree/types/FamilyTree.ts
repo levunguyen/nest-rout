@@ -1,12 +1,13 @@
 export interface FamilyMember {
   id: string;
   name: string;
-  birthYear: number;
+  birthYear?: number;
   deathYear?: number;
   address?: string;
   city?: string;
   country?: string;
-  gender: 'male' | 'female';
+  phone?: string;
+  gender: "male" | "female" | "other";
   generation: number;
   parentId?: string;
   spouseIds?: string[]; // Support multiple spouses

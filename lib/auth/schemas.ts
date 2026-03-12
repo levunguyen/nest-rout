@@ -21,6 +21,12 @@ export const familyMemberCreateSchema = z.object({
   address: z.string().trim().max(255).optional(),
   city: z.string().trim().max(120).optional(),
   country: z.string().trim().max(120).optional(),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[0-9+\-().\s]*$/, "Invalid phone number format")
+    .optional(),
   generation: z.number().int().min(-1).max(20).default(1),
   parentId: z.string().trim().min(1).optional(),
   spouseIds: z.array(z.string().trim().min(1)).max(10).optional().default([]),

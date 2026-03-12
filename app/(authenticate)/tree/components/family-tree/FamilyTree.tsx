@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { TreeControls } from "./TreeControls";
 import { FamilyTreeCanvas } from "./FamilyTreeCanvas";
 import { GenerationList } from "./GenerationList";
@@ -9,7 +9,7 @@ import { MemberDialog } from "./MemberDialog";
 import { MemberDetails } from "./MemberDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { getSpouses, hasSpouse } from "../../utils/relations";
+import { getSpouses } from "../../utils/relations";
 
 type ApiGender = "MALE" | "FEMALE" | "OTHER";
 
@@ -22,6 +22,7 @@ interface ApiFamilyMember {
   address?: string | null;
   city?: string | null;
   country?: string | null;
+  phone?: string | null;
   generation?: number | null;
   parentId?: string | null;
   spouseIds?: string[] | null;
@@ -31,12 +32,18 @@ interface ApiFamilyMember {
 const fromApiMember = (member: ApiFamilyMember): FamilyMember => ({
   id: member.id,
   name: member.fullName,
-  birthYear: member.birthYear ?? 2000,
+  birthYear: member.birthYear ?? undefined,
   deathYear: member.deathYear ?? undefined,
   address: member.address ?? undefined,
   city: member.city ?? undefined,
   country: member.country ?? undefined,
-  gender: member.gender === "FEMALE" ? "female" : "male",
+  phone: member.phone ?? undefined,
+  gender:
+    member.gender === "FEMALE"
+      ? "female"
+      : member.gender === "MALE"
+        ? "male"
+        : "other",
   generation: member.generation ?? 1,
   parentId: member.parentId ?? undefined,
   spouseIds: member.spouseIds ?? [],
@@ -50,54 +57,22 @@ const toApiPayload = (member: Omit<FamilyMember, "id">) => ({
   address: member.address?.trim() || undefined,
   city: member.city?.trim() || undefined,
   country: member.country?.trim() || undefined,
-  gender: member.gender === "female" ? "FEMALE" : "MALE",
+  phone: member.phone?.trim() || undefined,
+  gender:
+    member.gender === "female"
+      ? "FEMALE"
+      : member.gender === "male"
+        ? "MALE"
+        : "OTHER",
   generation: member.generation,
   parentId: member.parentId ?? undefined,
   spouseIds: member.spouseIds ?? [],
   imageUrl: member.imageUrl ?? undefined,
 });
 
-const sanitizeNoSingleParentChildren = (allMembers: FamilyMember[]) => {
-  const validParentIds = new Set(
-    allMembers.filter((m) => hasSpouse(m, allMembers)).map((m) => m.id)
-  );
-
-  const invalidIds = new Set<string>();
-
-  // Mark children whose parent has no spouse
-  allMembers.forEach((m) => {
-    if (m.parentId && !validParentIds.has(m.parentId)) {
-      invalidIds.add(m.id);
-    }
-  });
-
-  // Cascade: if a member is removed, remove all of their descendants
-  let changed = true;
-  while (changed) {
-    changed = false;
-    allMembers.forEach((m) => {
-      if (m.parentId && invalidIds.has(m.parentId) && !invalidIds.has(m.id)) {
-        invalidIds.add(m.id);
-        changed = true;
-      }
-    });
-  }
-
-  // Also remove spouses of removed members (to avoid floating spouse nodes)
-  if (invalidIds.size > 0) {
-    allMembers.forEach((m) => {
-      if (!invalidIds.has(m.id)) return;
-      const spouses = getSpouses(m, allMembers);
-      spouses.forEach(spouse => invalidIds.add(spouse.id));
-    });
-  }
-
-  if (invalidIds.size === 0) return allMembers;
-  return allMembers.filter((m) => !invalidIds.has(m.id));
-};
-
 export const FamilyTree = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [zoom, setZoom] = useState(0.7);
   const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
@@ -111,6 +86,7 @@ export const FamilyTree = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [isAutoFixingGenerations, setIsAutoFixingGenerations] = useState(false);
   const [dialogInitialValues, setDialogInitialValues] = useState<
     Partial<Omit<FamilyMember, "id">> | null
   >(null);
@@ -121,6 +97,8 @@ export const FamilyTree = () => {
     member: FamilyMember;
   } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const printAreaRef = useRef<HTMLDivElement | null>(null);
+  const focusedQueryMemberRef = useRef<string | null>(null);
 
   const normalizeApiError = useCallback(
     (raw?: string, fallback = "Có lỗi xảy ra") => {
@@ -140,34 +118,203 @@ export const FamilyTree = () => {
     [router],
   );
 
-  const sanitizedMembers = useMemo(
-    () => sanitizeNoSingleParentChildren(members),
-    [members]
-  );
-
   const { minGeneration, totalGenerations } = useMemo(() => {
-    if (sanitizedMembers.length === 0) {
+    if (members.length === 0) {
       return { minGeneration: 0, totalGenerations: 0 };
     }
     return {
-      minGeneration: Math.min(...sanitizedMembers.map((m) => m.generation)),
-      totalGenerations: Math.max(...sanitizedMembers.map((m) => m.generation)),
+      minGeneration: Math.min(...members.map((m) => m.generation)),
+      totalGenerations: Math.max(...members.map((m) => m.generation)),
     };
-  }, [sanitizedMembers]);
+  }, [members]);
 
-  const handleZoomIn = useCallback(() => {
-    setZoom((prev) => Math.min(prev + 0.1, 2));
-  }, []);
+  const dataIntegrityWarnings = useMemo(() => {
+    const memberById = new Map(members.map((member) => [member.id, member]));
+    const missingParentMembers = members.filter(
+      (member) => member.parentId && !memberById.has(member.parentId),
+    );
+    const parentGenerationMismatchMembers = members.filter((member) => {
+      if (!member.parentId) return false;
+      const parent = memberById.get(member.parentId);
+      if (!parent) return false;
+      return member.generation !== parent.generation + 1;
+    });
+    const singleParentMembers = members.filter((member) => {
+      if (!member.parentId) return false;
+      const parent = memberById.get(member.parentId);
+      if (!parent) return false;
+      return getSpouses(parent, members).length === 0;
+    });
 
-  const handleZoomOut = useCallback(() => {
-    setZoom((prev) => Math.max(prev - 0.1, 0.3));
-  }, []);
+    return {
+      missingParentMembers,
+      parentGenerationMismatchMembers,
+      singleParentMembers,
+      total:
+        missingParentMembers.length +
+        parentGenerationMismatchMembers.length +
+        singleParentMembers.length,
+    };
+  }, [members]);
 
   const handleReset = useCallback(() => {
     setZoom(0.7);
     setSelectedGeneration(null);
     setCollapsedNodes(new Set());
   }, []);
+
+  const handlePrintTree = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!printAreaRef.current) {
+      toast.error("Không tìm thấy khu vực cây để in.");
+      return;
+    }
+    const existingRoot = document.getElementById("tree-print-clone-root");
+    if (existingRoot) {
+      existingRoot.remove();
+    }
+
+    const cloneRoot = document.createElement("div");
+    cloneRoot.id = "tree-print-clone-root";
+    const cloneTree = printAreaRef.current.cloneNode(true);
+    cloneRoot.appendChild(cloneTree);
+    document.body.appendChild(cloneRoot);
+
+    const styleTag = document.createElement("style");
+    styleTag.id = "tree-print-style";
+    styleTag.innerHTML = `
+      #tree-print-clone-root {
+        display: none;
+      }
+      @media print {
+        body * {
+          visibility: hidden !important;
+        }
+        #tree-print-clone-root {
+          display: block !important;
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 999999 !important;
+          background: #fff !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        #tree-print-clone-root, #tree-print-clone-root * {
+          visibility: visible !important;
+        }
+        #tree-print-clone-root .tree-content {
+          left: 0 !important;
+          transform-origin: top left !important;
+        }
+      }
+    `;
+    document.head.appendChild(styleTag);
+
+    const cleanup = () => {
+      styleTag.remove();
+      cloneRoot.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+  }, []);
+
+  const handleAutoFixGenerationMismatch = useCallback(async () => {
+    if (isAutoFixingGenerations) return;
+    setIsAutoFixingGenerations(true);
+
+    try {
+      const memberById = new Map(members.map((member) => [member.id, member]));
+      const resolvedGeneration = new Map<string, number>();
+      const visiting = new Set<string>();
+
+      const resolveGeneration = (memberId: string): number => {
+        if (resolvedGeneration.has(memberId)) {
+          return resolvedGeneration.get(memberId)!;
+        }
+        if (visiting.has(memberId)) {
+          throw new Error("Cycle detected");
+        }
+
+        const member = memberById.get(memberId);
+        if (!member) {
+          throw new Error("Member not found");
+        }
+
+        visiting.add(memberId);
+
+        let nextGeneration = member.generation;
+        if (member.parentId) {
+          const parent = memberById.get(member.parentId);
+          if (parent) {
+            nextGeneration = resolveGeneration(parent.id) + 1;
+          }
+        }
+
+        visiting.delete(memberId);
+        resolvedGeneration.set(memberId, nextGeneration);
+        return nextGeneration;
+      };
+
+      members.forEach((member) => resolveGeneration(member.id));
+
+      const mismatches = members
+        .map((member) => ({
+          id: member.id,
+          currentGeneration: member.generation,
+          nextGeneration: resolvedGeneration.get(member.id) ?? member.generation,
+        }))
+        .filter((row) => row.currentGeneration !== row.nextGeneration)
+        .sort((a, b) => a.nextGeneration - b.nextGeneration);
+
+      if (mismatches.length === 0) {
+        toast.success("Không có dữ liệu lệch đời để tự sửa.");
+        return;
+      }
+
+      const updatedGenerationById = new Map<string, number>();
+      let failedCount = 0;
+
+      for (const row of mismatches) {
+        try {
+          const response = await fetch(`/api/family-members/${row.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ generation: row.nextGeneration }),
+          });
+
+          if (!response.ok) {
+            failedCount += 1;
+            continue;
+          }
+
+          updatedGenerationById.set(row.id, row.nextGeneration);
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      if (updatedGenerationById.size > 0) {
+        setMembers((prev) =>
+          prev.map((member) =>
+            updatedGenerationById.has(member.id)
+              ? { ...member, generation: updatedGenerationById.get(member.id)! }
+              : member,
+          ),
+        );
+        toast.success(`Đã tự sửa đời cho ${updatedGenerationById.size} thành viên.`);
+      }
+
+      if (failedCount > 0) {
+        toast.error(`${failedCount} thành viên chưa sửa được, vui lòng kiểm tra thủ công.`);
+      }
+    } catch {
+      toast.error("Không thể tự sửa dữ liệu lệch đời.");
+    } finally {
+      setIsAutoFixingGenerations(false);
+    }
+  }, [isAutoFixingGenerations, members]);
 
   // Get all descendant IDs of a member using iterative traversal.
   const getDescendantIds = useCallback(
@@ -179,7 +326,7 @@ export const FamilyTree = () => {
         const current = stack.pop();
         if (!current) continue;
 
-        const children = sanitizedMembers.filter((m) => m.parentId === current);
+        const children = members.filter((m) => m.parentId === current);
         children.forEach((child) => {
           if (!descendants.has(child.id)) {
             descendants.add(child.id);
@@ -190,7 +337,7 @@ export const FamilyTree = () => {
 
       return descendants;
     },
-    [sanitizedMembers]
+    [members]
   );
 
   const handleToggleCollapse = useCallback((memberId: string) => {
@@ -241,7 +388,7 @@ export const FamilyTree = () => {
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
             toast.error(normalizeApiError(payload?.error, "Không thể thêm thành viên"));
-            return;
+            return false;
           }
           const created = fromApiMember(payload.data as ApiFamilyMember);
           setMembers((prev) => [...prev, created]);
@@ -255,15 +402,18 @@ export const FamilyTree = () => {
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
             toast.error(normalizeApiError(payload?.error, "Không thể cập nhật thành viên"));
-            return;
+            return false;
           }
           const updated = fromApiMember(payload.data as ApiFamilyMember);
           setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
           toast.success("Đã cập nhật thông tin!");
+        } else {
+          return false;
         }
-        setIsDialogOpen(false);
+        return true;
       } catch {
         toast.error("Lỗi kết nối khi lưu thành viên");
+        return false;
       }
     },
     [isAddingNew, editingMember, normalizeApiError]
@@ -298,7 +448,7 @@ export const FamilyTree = () => {
   const handleMemberContextMenu = useCallback(
     (member: FamilyMember, position: { clientX: number; clientY: number }) => {
       const menuWidth = 220;
-      const menuHeight = 110;
+      const menuHeight = member.gender === "male" ? 110 : 72;
       const safeX =
         typeof window === "undefined"
           ? position.clientX
@@ -334,6 +484,10 @@ export const FamilyTree = () => {
 
   const handleAddSpouseFromContext = useCallback(() => {
     if (!contextMenu) return;
+    if (contextMenu.member.gender !== "male") {
+      setContextMenu(null);
+      return;
+    }
     setIsSpouseQuickAdd(true);
     setDialogInitialValues({
       parentId: undefined,
@@ -347,10 +501,7 @@ export const FamilyTree = () => {
     setContextMenu(null);
   }, [contextMenu]);
 
-  // Get potential parents (members who can have children) - must have a spouse
-  const potentialParents = sanitizedMembers.filter(
-    (m) => m.generation < 6 && hasSpouse(m, sanitizedMembers)
-  );
+  const potentialParents = members.filter((m) => m.generation < 20);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -436,6 +587,21 @@ export const FamilyTree = () => {
   }, [normalizeApiError]);
 
   useEffect(() => {
+    const memberIdFromQuery = searchParams.get("memberId");
+    if (!memberIdFromQuery) return;
+    if (focusedQueryMemberRef.current === memberIdFromQuery) return;
+
+    const target = members.find((member) => member.id === memberIdFromQuery);
+    if (!target) return;
+
+    focusedQueryMemberRef.current = memberIdFromQuery;
+    setSelectedMember(target);
+    setSelectedGeneration(null);
+    setSearchQuery(target.name);
+    setCollapsedNodes(new Set());
+  }, [members, searchParams]);
+
+  useEffect(() => {
     if (!isFullscreen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -454,33 +620,77 @@ export const FamilyTree = () => {
             : "",
         ].join(" ")}
       >
-        {/* Header */}
-        <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-serif font-bold text-[#0F172A]">
-            Gia Phả Dòng Họ
-          </h1>
-          <p className="text-[#475569]">
-            Quản lý và xem thông tin các thành viên trong gia đình
-          </p>
-        </div>
-
         {/* Controls */}
         <TreeControls
-          zoom={zoom}
           selectedGeneration={selectedGeneration}
           totalGenerations={totalGenerations}
           minGeneration={minGeneration}
-          memberCount={sanitizedMembers.length}
+          memberCount={members.length}
           searchQuery={searchQuery}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
           onReset={handleReset}
           onGenerationChange={setSelectedGeneration}
           onAddMember={handleAddMember}
           onSearchChange={setSearchQuery}
           isFullscreen={isFullscreen}
           onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
+          onPrintTree={handlePrintTree}
         />
+
+        {dataIntegrityWarnings.total > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Dữ liệu gia phả cần rà soát</p>
+            <div className="mt-2 space-y-2">
+              {dataIntegrityWarnings.missingParentMembers.length > 0 && (
+                <p>
+                  - {dataIntegrityWarnings.missingParentMembers.length} thành viên đang trỏ đến
+                  cha/mẹ không tồn tại.
+                </p>
+              )}
+              {dataIntegrityWarnings.parentGenerationMismatchMembers.length > 0 && (
+                <p>
+                  - {dataIntegrityWarnings.parentGenerationMismatchMembers.length} thành viên lệch
+                  đời so với cha/mẹ.
+                </p>
+              )}
+              {dataIntegrityWarnings.singleParentMembers.length > 0 && (
+                <p>
+                  - {dataIntegrityWarnings.singleParentMembers.length} thành viên chỉ liên kết 1
+                  phụ huynh.
+                </p>
+              )}
+            </div>
+            {dataIntegrityWarnings.parentGenerationMismatchMembers.length > 0 && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleAutoFixGenerationMismatch}
+                  disabled={isAutoFixingGenerations}
+                  className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isAutoFixingGenerations ? "Đang tự sửa..." : "Tự sửa lệch đời"}
+                </button>
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                ...dataIntegrityWarnings.missingParentMembers,
+                ...dataIntegrityWarnings.parentGenerationMismatchMembers,
+                ...dataIntegrityWarnings.singleParentMembers,
+              ]
+                .slice(0, 6)
+                .map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => handleEditMember(member)}
+                    className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs text-amber-900 hover:bg-amber-100"
+                  >
+                    Sửa: {member.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
 
         {/* Main Content - Full Width */}
         <Tabs defaultValue="tree" className="w-full">
@@ -494,7 +704,7 @@ export const FamilyTree = () => {
               <div className="rounded-xl border border-[#E2E8F0] bg-white p-10 text-center text-sm text-[#475569]">
                 Đang tải dữ liệu gia phả...
               </div>
-            ) : sanitizedMembers.length === 0 ? (
+            ) : members.length === 0 ? (
               <div className="rounded-xl border border-[#E2E8F0] bg-white p-10 text-center">
                 <h3 className="text-lg font-semibold text-[#0F172A]">Chưa có dữ liệu gia phả</h3>
                 <p className="mt-2 text-sm text-[#475569]">
@@ -502,31 +712,33 @@ export const FamilyTree = () => {
                 </p>
               </div>
             ) : (
-              <FamilyTreeCanvas
-                members={sanitizedMembers}
-                zoom={zoom}
-                selectedGeneration={selectedGeneration}
-                searchQuery={searchQuery}
-                onMemberClick={handleMemberClick}
-                onMemberContextMenu={handleMemberContextMenu}
-                selectedMemberId={selectedMember?.id}
-                collapsedNodes={collapsedNodes}
-                onToggleCollapse={handleToggleCollapse}
-                hoveredMemberId={hoveredMemberId}
-                onMemberHover={setHoveredMemberId}
-                onZoomChange={setZoom}
-              />
+              <div ref={printAreaRef} data-tree-print-area>
+                <FamilyTreeCanvas
+                  members={members}
+                  zoom={zoom}
+                  selectedGeneration={selectedGeneration}
+                  searchQuery={searchQuery}
+                  onMemberClick={handleMemberClick}
+                  onMemberContextMenu={handleMemberContextMenu}
+                  selectedMemberId={selectedMember?.id}
+                  collapsedNodes={collapsedNodes}
+                  onToggleCollapse={handleToggleCollapse}
+                  hoveredMemberId={hoveredMemberId}
+                  onMemberHover={setHoveredMemberId}
+                  onZoomChange={setZoom}
+                />
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="list" className="space-y-4">
             {(selectedGeneration !== null
-              ? [selectedGeneration]
+              ? Array.from({ length: 4 }, (_, i) => selectedGeneration + i)
               : Array.from({ length: totalGenerations - minGeneration + 1 }, (_, i) => minGeneration + i)
             ).map((gen) => (
               <GenerationList
                 key={gen}
-                members={sanitizedMembers}
+                members={members}
                 generation={gen}
                 onMemberClick={handleMemberClick}
                 onMemberEdit={handleEditMember}
@@ -539,7 +751,7 @@ export const FamilyTree = () => {
         {/* Member Details Dialog */}
         <MemberDetails
           member={selectedMember}
-          allMembers={sanitizedMembers}
+          allMembers={members}
           onEdit={handleEditMember}
           onClose={() => setSelectedMember(null)}
         />
@@ -551,7 +763,7 @@ export const FamilyTree = () => {
           member={isAddingNew ? null : editingMember}
           initialValues={isAddingNew ? dialogInitialValues ?? undefined : undefined}
           lockParentSelection={isAddingNew && isSpouseQuickAdd}
-          allMembers={sanitizedMembers}
+          allMembers={members}
           parents={potentialParents}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSaveMember}
@@ -575,14 +787,16 @@ export const FamilyTree = () => {
               <span className="text-sm font-medium text-[#0F172A]">Thêm con</span>
               <span className="text-xs text-[#64748B]">Tự gán cha/mẹ là thành viên đang chọn</span>
             </button>
-            <button
-              type="button"
-              onClick={handleAddSpouseFromContext}
-              className="flex w-full flex-col items-start gap-0.5 border-t border-[#F1F5F9] px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
-            >
-              <span className="text-sm font-medium text-[#0F172A]">Thêm vợ/chồng</span>
-              <span className="text-xs text-[#64748B]">Tự gán quan hệ hôn nhân với thành viên này</span>
-            </button>
+            {contextMenu.member.gender === "male" && (
+              <button
+                type="button"
+                onClick={handleAddSpouseFromContext}
+                className="flex w-full flex-col items-start gap-0.5 border-t border-[#F1F5F9] px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
+              >
+                <span className="text-sm font-medium text-[#0F172A]">Thêm vợ/chồng</span>
+                <span className="text-xs text-[#64748B]">Tự gán quan hệ hôn nhân với thành viên này</span>
+              </button>
+            )}
           </div>
         )}
       </div>

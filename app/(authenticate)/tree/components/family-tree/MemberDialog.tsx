@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FamilyMember } from "../../types/FamilyTree";
 import {
   Dialog,
@@ -27,7 +27,7 @@ interface MemberDialogProps {
   allMembers: FamilyMember[];
   parents: FamilyMember[];
   onClose: () => void;
-  onSave: (member: Omit<FamilyMember, "id">) => void;
+  onSave: (member: Omit<FamilyMember, "id">) => Promise<boolean>;
   onDelete?: () => void;
 }
 
@@ -43,28 +43,31 @@ export const MemberDialog = ({
   onDelete,
 }: MemberDialogProps) => {
   const [name, setName] = useState(member?.name ?? initialValues?.name ?? "");
-  const [birthYear, setBirthYear] = useState(
-    member?.birthYear?.toString() ?? initialValues?.birthYear?.toString() ?? "",
-  );
-  const [deathYear, setDeathYear] = useState(
-    member?.deathYear?.toString() ?? initialValues?.deathYear?.toString() ?? "",
-  );
+  const [birthYear, setBirthYear] = useState(member?.birthYear?.toString() ?? initialValues?.birthYear?.toString() ?? "");
+  const [deathYear, setDeathYear] = useState(member?.deathYear?.toString() ?? initialValues?.deathYear?.toString() ?? "");
   const [address, setAddress] = useState(member?.address ?? initialValues?.address ?? "");
   const [city, setCity] = useState(member?.city ?? initialValues?.city ?? "");
   const [country, setCountry] = useState(member?.country ?? initialValues?.country ?? "");
-  const [gender, setGender] = useState<"male" | "female">(
-    member?.gender ?? initialValues?.gender ?? "male",
-  );
+  const [phone, setPhone] = useState(member?.phone ?? initialValues?.phone ?? "");
+  const [gender, setGender] = useState<"male" | "female" | "other">(member?.gender ?? initialValues?.gender ?? "other");
   const [parentId, setParentId] = useState<string>(member?.parentId ?? initialValues?.parentId ?? "");
   const [generation, setGeneration] = useState(member?.generation ?? initialValues?.generation ?? 1);
   const [spouseIds, setSpouseIds] = useState<string[]>(member?.spouseIds ?? initialValues?.spouseIds ?? []);
+  const [parentSearch, setParentSearch] = useState(() => {
+    const initialParentId = member?.parentId ?? initialValues?.parentId ?? "";
+    if (!initialParentId) return "";
+    return allMembers.find((m) => m.id === initialParentId)?.name ?? "";
+  });
+  const [spouseSearch, setSpouseSearch] = useState(() => {
+    const initialSpouseIds = member?.spouseIds ?? initialValues?.spouseIds ?? [];
+    if (!initialSpouseIds[0]) return "";
+    return allMembers.find((m) => m.id === initialSpouseIds[0])?.name ?? "";
+  });
+  const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
+  const [isSpouseDropdownOpen, setIsSpouseDropdownOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState(member?.imageUrl ?? initialValues?.imageUrl ?? "");
-  const [spouseSearch, setSpouseSearch] = useState("");
-  const [isSpouseSectionOpen, setIsSpouseSectionOpen] = useState(
-    (member?.spouseIds?.length ?? initialValues?.spouseIds?.length ?? 0) > 0,
-  );
-  const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const query = "(min-width: 1024px)";
@@ -81,61 +84,95 @@ export const MemberDialog = ({
     return () => mediaQuery.removeListener(update);
   }, []);
 
-  const handleParentChange = (value: string) => {
-    setParentId(value === "none" ? "" : value);
-    if (value !== "none") {
-      const parent = parents.find((p) => p.id === value);
-      if (parent) {
-        setGeneration(parent.generation + 1);
-      }
-    }
+  const handleParentSelect = (parent: FamilyMember) => {
+    setParentId(parent.id);
+    setGeneration(parent.generation + 1);
+    setParentSearch(parent.name);
+    setIsParentDropdownOpen(false);
   };
 
-  const handleSave = () => {
-    const parsedBirthYear = parseInt(birthYear);
+  const handleSave = async () => {
+    if (isSaving) return;
+    const parsedBirthYear = birthYear ? parseInt(birthYear) : undefined;
     const parsedDeathYear = deathYear ? parseInt(deathYear) : undefined;
-
-    onSave({
+    setIsSaving(true);
+    const ok = await onSave({
       name,
       birthYear: parsedBirthYear,
       deathYear: parsedDeathYear,
       address: address.trim() || undefined,
       city: city.trim() || undefined,
       country: country.trim() || undefined,
+      phone: phone.trim() || undefined,
       gender,
       parentId: parentId || undefined,
       generation,
       spouseIds,
       imageUrl: imageUrl.trim() || undefined,
     });
-    onClose();
+    setIsSaving(false);
+    if (ok) {
+      onClose();
+    }
   };
 
-  const spouseCandidatePool = allMembers.filter((m) => {
-    if (m.id === member?.id) return false;
-    if (spouseIds.includes(m.id)) return true;
-    return m.generation === generation;
-  });
+  const deferredParentSearch = useDeferredValue(parentSearch);
+  const deferredSpouseSearch = useDeferredValue(spouseSearch);
 
-  const normalizedSpouseSearch = spouseSearch.trim().toLowerCase();
-  const spouseCandidates = (
-    normalizedSpouseSearch.length === 0
-      ? spouseCandidatePool.filter((m) => spouseIds.includes(m.id))
-      : spouseCandidatePool.filter((m) => m.name.toLowerCase().includes(normalizedSpouseSearch))
-  ).slice(0, 30);
+  const availableParents = useMemo(
+    () => parents.filter((candidate) => candidate.id !== member?.id),
+    [parents, member?.id],
+  );
+  const normalizedParentSearch = deferredParentSearch.trim().toLowerCase();
+  const hasParentQuery = normalizedParentSearch.length > 0;
+  const parentCandidates = useMemo(
+    () =>
+      availableParents
+        .filter((candidate) =>
+          hasParentQuery ? candidate.name.toLowerCase().includes(normalizedParentSearch) : true,
+        )
+        .slice(0, 40),
+    [availableParents, hasParentQuery, normalizedParentSearch],
+  );
 
-  const toggleSpouse = (candidateId: string) => {
-    setSpouseIds((prev) =>
-      prev.includes(candidateId) ? prev.filter((id) => id !== candidateId) : [...prev, candidateId],
-    );
+  const spouseCandidatePool = useMemo(
+    () =>
+      allMembers.filter((m) => {
+        if (m.id === member?.id) return false;
+        if (spouseIds.includes(m.id)) return true;
+        return m.generation === generation;
+      }),
+    [allMembers, generation, member?.id, spouseIds],
+  );
+
+  const normalizedSpouseSearch = deferredSpouseSearch.trim().toLowerCase();
+  const hasSpouseQuery = normalizedSpouseSearch.length > 0;
+  const spouseCandidates = useMemo(
+    () =>
+      spouseCandidatePool
+        .filter((candidate) =>
+          hasSpouseQuery ? candidate.name.toLowerCase().includes(normalizedSpouseSearch) : true,
+        )
+        .slice(0, 30),
+    [hasSpouseQuery, normalizedSpouseSearch, spouseCandidatePool],
+  );
+
+  const toggleSpouse = (candidate: FamilyMember) => {
+    const next = spouseIds.includes(candidate.id)
+      ? spouseIds.filter((id) => id !== candidate.id)
+      : [...spouseIds, candidate.id];
+    setSpouseIds(next);
+    setSpouseSearch(candidate.name);
+    setIsSpouseDropdownOpen(false);
   };
 
-  const parsedBirthYear = parseInt(birthYear);
+  const parsedBirthYear = birthYear ? parseInt(birthYear) : undefined;
   const parsedDeathYear = deathYear ? parseInt(deathYear) : undefined;
   const hasValidYears =
-    Number.isFinite(parsedBirthYear) &&
-    parsedBirthYear > 1800 &&
-    (!parsedDeathYear || parsedDeathYear >= parsedBirthYear);
+    (parsedBirthYear === undefined || (Number.isFinite(parsedBirthYear) && parsedBirthYear > 0)) &&
+    (parsedDeathYear === undefined ||
+      (Number.isFinite(parsedDeathYear) &&
+        (parsedBirthYear === undefined || parsedDeathYear >= parsedBirthYear)));
   const isValid = name.trim().length > 1 && hasValidYears;
 
   return (
@@ -153,7 +190,9 @@ export const MemberDialog = ({
         {isDesktop ? (
           <div className="grid gap-4 py-2 lg:grid-cols-2">
             <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+                Thông tin cơ bản
+              </p>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="grid gap-2 md:col-span-2">
                   <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
@@ -187,29 +226,320 @@ export const MemberDialog = ({
                     className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 md:col-span-2">
                   <Label className="text-[#0F172A]">Giới tính</Label>
-                  <Select value={gender} onValueChange={(v: "male" | "female") => setGender(v)}>
+                  <Select
+                    value={gender}
+                    onValueChange={(v: "male" | "female" | "other") => setGender(v)}
+                  >
                     <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
                       <SelectItem value="male">Nam</SelectItem>
                       <SelectItem value="female">Nữ</SelectItem>
+                      <SelectItem value="other">Khác/Không rõ</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="grid gap-2 md:col-span-2 border-t border-[#E2E8F0] pt-3">
+                  <Label htmlFor="spouseSearch" className="text-[#0F172A]">Vợ / Chồng</Label>
+                  <div className="relative">
+                    <Input
+                      id="spouseSearch"
+                      value={spouseSearch}
+                      onChange={(e) => {
+                        setSpouseSearch(e.target.value);
+                        setIsSpouseDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSpouseDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsSpouseDropdownOpen(false), 120)}
+                      placeholder="Nhập tên để tìm..."
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                    {hasSpouseQuery && isSpouseDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-36 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3 shadow-md">
+                        {spouseCandidates.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">Không có kết quả phù hợp.</p>
+                        ) : (
+                          spouseCandidates.map((candidate) => (
+                            <button
+                              key={candidate.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => toggleSpouse(candidate)}
+                              className={[
+                                "flex w-full items-center rounded-md border px-3 py-2 text-left text-sm transition",
+                                spouseIds.includes(candidate.id)
+                                  ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                                  : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                              ].join(" ")}
+                            >
+                              <span>{candidate.name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+                Quan hệ gia đình
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Cha/Mẹ</Label>
+                  <div className="relative">
+                    <Input
+                      id="parentSearch"
+                      value={parentSearch}
+                      onChange={(e) => {
+                        setParentSearch(e.target.value);
+                        setIsParentDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsParentDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsParentDropdownOpen(false), 120)}
+                      placeholder="Nhập để tìm cha/mẹ theo tên..."
+                      disabled={lockParentSelection}
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                    {!lockParentSelection && hasParentQuery && isParentDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-36 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-2 shadow-md">
+                        {parentCandidates.length === 0 ? (
+                          <p className="px-1 text-xs text-[#64748B]">Không tìm thấy kết quả phù hợp.</p>
+                        ) : (
+                          parentCandidates.map((parent) => (
+                            <button
+                              key={parent.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleParentSelect(parent)}
+                              className={[
+                                "flex w-full items-center rounded-md border px-2 py-1.5 text-left text-sm transition",
+                                parentId === parent.id
+                                  ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                                  : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                              ].join(" ")}
+                            >
+                              <span>{parent.name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {lockParentSelection && (
+                    <p className="text-xs text-[#64748B]">
+                      Đang thêm vợ/chồng nên không chọn quan hệ cha/mẹ cho thành viên này.
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-[#0F172A]">Đời thứ</Label>
+                    <Input
+                      type="number"
+                      value={generation}
+                      onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
+                      min={-1}
+                      max={20}
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
+                    <Input
+                      id="imageUrl"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor="address" className="text-[#0F172A]">Địa chỉ</Label>
+                    <Input
+                      id="address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Số nhà, đường..."
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="city" className="text-[#0F172A]">Thành phố</Label>
+                    <Input
+                      id="city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="VD: Hà Nội"
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="country" className="text-[#0F172A]">Quốc gia</Label>
+                    <Input
+                      id="country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      placeholder="VD: Việt Nam"
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor="phone" className="text-[#0F172A]">Số điện thoại</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+84 9xx xxx xxx"
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                  </div>
+              </div>
+            </div>
+
+            {!hasValidYears && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 lg:col-span-2">
+                Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nhập họ và tên..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="birthYear" className="text-[#0F172A]">Năm sinh</Label>
+                  <Input id="birthYear" type="number" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="VD: 1990" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deathYear" className="text-[#0F172A]">Năm mất (nếu có)</Label>
+                  <Input id="deathYear" type="number" value={deathYear} onChange={(e) => setDeathYear(e.target.value)} placeholder="Để trống nếu còn sống" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Giới tính</Label>
+                  <Select
+                    value={gender}
+                    onValueChange={(v: "male" | "female" | "other") => setGender(v)}
+                  >
+                    <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
+                      <SelectItem value="male">Nam</SelectItem>
+                      <SelectItem value="female">Nữ</SelectItem>
+                      <SelectItem value="other">Khác/Không rõ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2 border-t border-[#E2E8F0] pt-3">
+                  <Label htmlFor="spouseSearchMobile" className="text-[#0F172A]">Vợ / Chồng</Label>
+                  <div className="relative">
+                    <Input
+                      id="spouseSearchMobile"
+                      value={spouseSearch}
+                      onChange={(e) => {
+                        setSpouseSearch(e.target.value);
+                        setIsSpouseDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSpouseDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsSpouseDropdownOpen(false), 120)}
+                      placeholder="Nhập tên để tìm..."
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                    />
+                    {hasSpouseQuery && isSpouseDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3 shadow-md">
+                        {spouseCandidates.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">Không có kết quả phù hợp.</p>
+                        ) : (
+                          spouseCandidates.map((candidate) => (
+                            <button
+                              key={candidate.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => toggleSpouse(candidate)}
+                              className={[
+                                "flex w-full items-center rounded-md border px-3 py-2 text-left text-sm transition",
+                                spouseIds.includes(candidate.id)
+                                  ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                                  : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                              ].join(" ")}
+                            >
+                              <span>{candidate.name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Cha/Mẹ</Label>
+                  <div className="relative">
+                    <Input
+                      id="parentSearchMobile"
+                      value={parentSearch}
+                      onChange={(e) => {
+                        setParentSearch(e.target.value);
+                        setIsParentDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsParentDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsParentDropdownOpen(false), 120)}
+                      placeholder="Nhập để tìm cha/mẹ theo tên..."
+                      disabled={lockParentSelection}
+                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                    {!lockParentSelection && hasParentQuery && isParentDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-36 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-2 shadow-md">
+                        {parentCandidates.length === 0 ? (
+                          <p className="px-1 text-xs text-[#64748B]">Không tìm thấy kết quả phù hợp.</p>
+                        ) : (
+                          parentCandidates.map((parent) => (
+                            <button
+                              key={parent.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleParentSelect(parent)}
+                              className={[
+                                "flex w-full items-center rounded-md border px-2 py-1.5 text-left text-sm transition",
+                                parentId === parent.id
+                                  ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
+                                  : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
+                              ].join(" ")}
+                            >
+                              <span>{parent.name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-[#0F172A]">Đời thứ</Label>
+                  <Input type="number" value={generation} onChange={(e) => setGeneration(parseInt(e.target.value) || 1)} min={-1} max={20} className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
-                  <Input
-                    id="imageUrl"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                  />
+                  <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
                 </div>
-                <div className="grid gap-2 md:col-span-2">
+                <div className="grid gap-2">
                   <Label htmlFor="address" className="text-[#0F172A]">Địa chỉ</Label>
                   <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Số nhà, đường..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
                 </div>
@@ -221,255 +551,12 @@ export const MemberDialog = ({
                   <Label htmlFor="country" className="text-[#0F172A]">Quốc gia</Label>
                   <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="VD: Việt Nam" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
-              <div className="grid gap-3 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label className="text-[#0F172A]">Cha/Mẹ</Label>
-                  <Select value={parentId || "none"} onValueChange={handleParentChange}>
-                    <SelectTrigger
-                      disabled={lockParentSelection}
-                      className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <SelectValue placeholder="Chọn cha/mẹ..." />
-                    </SelectTrigger>
-                    <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
-                      <SelectItem value="none">Không có (Tổ tiên)</SelectItem>
-                      {parents.map((parent) => (
-                        <SelectItem key={parent.id} value={parent.id}>
-                          {parent.name} (Đời {parent.generation})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {lockParentSelection && (
-                    <p className="text-xs text-[#64748B]">
-                      Đang thêm vợ/chồng nên không chọn quan hệ cha/mẹ cho thành viên này.
-                    </p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-[#0F172A]">Đời thứ</Label>
-                  <Input
-                    type="number"
-                    value={generation}
-                    onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
-                    min={-1}
-                    max={20}
-                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                  />
+                  <Label htmlFor="phone" className="text-[#0F172A]">Số điện thoại</Label>
+                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+84 9xx xxx xxx" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
                 </div>
               </div>
             </div>
-
-            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 lg:col-span-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Vợ / Chồng</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsSpouseSectionOpen((prev) => !prev)}
-                  className="h-8 border-[#E2E8F0] px-3 text-xs"
-                >
-                  {isSpouseSectionOpen ? "Thu gọn" : "Mở rộng"}
-                </Button>
-              </div>
-              {isSpouseSectionOpen && (
-                <>
-                  <div className="mb-3 mt-3 grid gap-2">
-                    <Label htmlFor="spouseSearch" className="text-[#0F172A]">Tìm theo tên (lọc cùng đời)</Label>
-                    <Input
-                      id="spouseSearch"
-                      value={spouseSearch}
-                      onChange={(e) => setSpouseSearch(e.target.value)}
-                      placeholder="Nhập tên để tìm..."
-                      className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                    />
-                    <p className="text-xs text-[#64748B]">
-                      {normalizedSpouseSearch.length === 0
-                        ? "Nhập từ khóa để tìm nhanh. Khi chưa tìm, chỉ hiển thị người đã chọn."
-                        : `Hiển thị tối đa 30 kết quả. Tìm thấy ${spouseCandidates.length} mục.`}
-                    </p>
-                  </div>
-                  <div className="max-h-36 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
-                    {spouseCandidates.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        {normalizedSpouseSearch.length === 0
-                          ? "Chưa chọn vợ/chồng. Hãy nhập tên để tìm."
-                          : "Không có kết quả phù hợp."}
-                      </p>
-                    ) : (
-                      spouseCandidates.map((candidate) => (
-                        <label
-                          key={candidate.id}
-                          className={[
-                            "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition",
-                            spouseIds.includes(candidate.id)
-                              ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
-                              : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
-                          ].join(" ")}
-                        >
-                          <span>
-                            {candidate.name} (Đời {candidate.generation})
-                          </span>
-                          <input
-                            type="checkbox"
-                            checked={spouseIds.includes(candidate.id)}
-                            onChange={() => toggleSpouse(candidate.id)}
-                            className="h-4 w-4"
-                          />
-                        </label>
-                      ))
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {!hasValidYears && (
-              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 lg:col-span-2">
-                Năm mất phải lớn hơn hoặc bằng năm sinh, và năm sinh phải hợp lệ.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-white px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-                Bước {mobileStep}/2
-              </p>
-              <div className="flex gap-1">
-                <span className={`h-2 w-6 rounded-full ${mobileStep === 1 ? "bg-[#16A34A]" : "bg-[#E2E8F0]"}`} />
-                <span className={`h-2 w-6 rounded-full ${mobileStep === 2 ? "bg-[#16A34A]" : "bg-[#E2E8F0]"}`} />
-              </div>
-            </div>
-
-            {mobileStep === 1 ? (
-              <>
-                <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Thông tin cơ bản</p>
-                  <div className="grid gap-3">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name" className="text-[#0F172A]">Họ và tên</Label>
-                      <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nhập họ và tên..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="birthYear" className="text-[#0F172A]">Năm sinh</Label>
-                      <Input id="birthYear" type="number" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="VD: 1990" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="deathYear" className="text-[#0F172A]">Năm mất (nếu có)</Label>
-                      <Input id="deathYear" type="number" value={deathYear} onChange={(e) => setDeathYear(e.target.value)} placeholder="Để trống nếu còn sống" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label className="text-[#0F172A]">Giới tính</Label>
-                      <Select value={gender} onValueChange={(v: "male" | "female") => setGender(v)}>
-                        <SelectTrigger className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
-                          <SelectItem value="male">Nam</SelectItem>
-                          <SelectItem value="female">Nữ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>
-                      <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="address" className="text-[#0F172A]">Địa chỉ</Label>
-                      <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Số nhà, đường..." className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="city" className="text-[#0F172A]">Thành phố</Label>
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="VD: Hà Nội" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="country" className="text-[#0F172A]">Quốc gia</Label>
-                      <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="VD: Việt Nam" className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Quan hệ gia đình</p>
-                  <div className="grid gap-3">
-                    <div className="grid gap-2">
-                      <Label className="text-[#0F172A]">Cha/Mẹ</Label>
-                      <Select value={parentId || "none"} onValueChange={handleParentChange}>
-                        <SelectTrigger
-                          disabled={lockParentSelection}
-                          className="border-[#E2E8F0] bg-white focus:ring-[#16A34A]/20 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <SelectValue placeholder="Chọn cha/mẹ..." />
-                        </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[80] border-[#E2E8F0] bg-white shadow-xl">
-                          <SelectItem value="none">Không có (Tổ tiên)</SelectItem>
-                          {parents.map((parent) => (
-                            <SelectItem key={parent.id} value={parent.id}>
-                              {parent.name} (Đời {parent.generation})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label className="text-[#0F172A]">Đời thứ</Label>
-                      <Input type="number" value={generation} onChange={(e) => setGeneration(parseInt(e.target.value) || 1)} min={-1} max={20} className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Vợ / Chồng</p>
-                <div className="mb-3 grid gap-2">
-                  <Label htmlFor="spouseSearch" className="text-[#0F172A]">Tìm theo tên (lọc cùng đời)</Label>
-                  <Input
-                    id="spouseSearch"
-                    value={spouseSearch}
-                    onChange={(e) => setSpouseSearch(e.target.value)}
-                    placeholder="Nhập tên để tìm..."
-                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
-                  />
-                </div>
-                <div className="max-h-56 space-y-2 overflow-auto rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] p-3">
-                  {spouseCandidates.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      {normalizedSpouseSearch.length === 0
-                        ? "Chưa chọn vợ/chồng. Hãy nhập tên để tìm."
-                        : "Không có kết quả phù hợp."}
-                    </p>
-                  ) : (
-                    spouseCandidates.map((candidate) => (
-                      <label
-                        key={candidate.id}
-                        className={[
-                          "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition",
-                          spouseIds.includes(candidate.id)
-                            ? "border-[#16A34A] bg-[#DCFCE7] text-[#166534]"
-                            : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAF8]",
-                        ].join(" ")}
-                      >
-                        <span>
-                          {candidate.name} (Đời {candidate.generation})
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={spouseIds.includes(candidate.id)}
-                          onChange={() => toggleSpouse(candidate.id)}
-                          className="h-4 w-4"
-                        />
-                      </label>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
 
             {!hasValidYears && (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -480,29 +567,6 @@ export const MemberDialog = ({
         )}
 
         <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-          {!isDesktop && (
-            <div className="flex w-full gap-2 sm:w-auto">
-              {mobileStep === 2 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setMobileStep(1)}
-                  className="flex-1 border-[#E2E8F0] sm:flex-none"
-                >
-                  Quay lại
-                </Button>
-              )}
-              {mobileStep === 1 && (
-                <Button
-                  type="button"
-                  onClick={() => setMobileStep(2)}
-                  className="flex-1 bg-[#16A34A] text-white hover:bg-[#15803D] sm:flex-none"
-                >
-                  Tiếp tục
-                </Button>
-              )}
-            </div>
-          )}
           {member && onDelete && (
             <Button variant="destructive" onClick={onDelete} className="mr-auto">
               Xóa
@@ -511,11 +575,13 @@ export const MemberDialog = ({
           <Button variant="outline" onClick={onClose} className="border-[#E2E8F0]">
             Hủy
           </Button>
-          {(isDesktop || mobileStep === 2) && (
-            <Button onClick={handleSave} disabled={!isValid} className="bg-[#16A34A] text-white hover:bg-[#15803D]">
-              {member ? "Lưu thay đổi" : "Thêm mới"}
-            </Button>
-          )}
+          <Button
+            onClick={handleSave}
+            disabled={!isValid || isSaving}
+            className="bg-[#16A34A] text-white hover:bg-[#15803D]"
+          >
+            {isSaving ? "Đang lưu..." : member ? "Lưu thay đổi" : "Thêm mới"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

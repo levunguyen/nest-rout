@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "npm run test:smoke",
     "test:smoke": "node scripts/smoke-routes.mjs",
+    "test:tree": "node scripts/smoke-tree-integrity.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push"

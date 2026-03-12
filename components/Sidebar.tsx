@@ -30,7 +30,7 @@ export default function Sidebar() {
         { name: "Bản Đồ", icon: <FaMap />, path: "/maps" },
         { name: "Tin Tức", icon: <FaBlog />, path: "/news" },
         { name: "Tìm Kiếm", icon: <FaSearch />, path: "/search" },
-        { name: "People", icon: <FaUsers />, path: "/people" },
+        { name: "Danh bạ", icon: <FaUsers />, path: "/people" },
         { name: "Quản lý", icon: <FaUserFriends />, path: "/admin/dashboard" },
         { name: "Sự Kiện", icon: <FaCalendarAlt />, path: "/event" },
         { name: "Thanh Toán", icon: <FaMoneyBill />, path: "/billing" },

@@ -24,6 +24,9 @@ export const MemberDetails = ({
   onClose,
 }: MemberDetailsProps) => {
   if (!member) return null;
+  const isMale = member.gender === "male";
+  const isFemale = member.gender === "female";
+  const genderLabel = isMale ? "Nam" : isFemale ? "Nữ" : "Khác/Không rõ";
 
   const parent = member.parentId
     ? allMembers.find((m) => m.id === member.parentId)
@@ -57,9 +60,11 @@ export const MemberDetails = ({
               <div
                 className={cn(
                   "flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border",
-                  member.gender === "male"
+                  isMale
                     ? "border-[#86EFAC] bg-[#DCFCE7] text-[#166534]"
-                    : "border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]"
+                    : isFemale
+                      ? "border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]"
+                      : "border-[#CBD5E1] bg-[#F1F5F9] text-[#475569]"
                 )}
               >
                 <User className="h-10 w-10" />
@@ -73,17 +78,21 @@ export const MemberDetails = ({
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-1 text-xs font-medium",
-                      member.gender === "male" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEF3C7] text-[#92400E]"
+                      isMale
+                        ? "bg-[#DCFCE7] text-[#166534]"
+                        : isFemale
+                          ? "bg-[#FEF3C7] text-[#92400E]"
+                          : "bg-[#F1F5F9] text-[#475569]"
                     )}
                   >
-                    {member.gender === "male" ? "Nam" : "Nữ"}
+                    {genderLabel}
                   </span>
                 </div>
               </div>
             </div>
             <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAF8] px-3 py-2 text-sm text-[#334155]">
               <Calendar className="h-4 w-4 text-[#16A34A]" />
-              {member.birthYear}
+              {member.birthYear ?? "Chưa rõ"}
               {member.deathYear ? ` - ${member.deathYear}` : " - nay"}
             </div>
           </div>

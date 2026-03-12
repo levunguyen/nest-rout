@@ -157,6 +157,7 @@ model FamilyMember {
   address      String?
   city         String?
   country      String?
+  phone        String?
   generation   Int        @default(1)
   parentId     String?
   spouseIds    String[]   @default([])
