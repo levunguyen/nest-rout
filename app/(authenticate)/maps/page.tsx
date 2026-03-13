@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { MapPin, Search } from "lucide-react";
+import { Loader2, MapPin, RotateCcw, Search } from "lucide-react";
 
 interface ApiFamilyMember {
   id: string;
@@ -244,7 +244,8 @@ export default function MapsPage() {
     [activeMarkerId, filteredMembers, memberMarkerMap],
   );
 
-  const handleSearch = () => {
+  const handleSearch = (event?: React.FormEvent) => {
+    event?.preventDefault();
     const city = cityInput.trim();
     const country = countryInput.trim();
     if (!city && !country) {
@@ -257,6 +258,19 @@ export default function MapsPage() {
     setAppliedCountry(country);
     setHasSearched(true);
   };
+
+  const handleResetFilters = () => {
+    setCityInput("");
+    setCountryInput("");
+    setAppliedCity("");
+    setAppliedCountry("");
+    setHasSearched(false);
+    setActiveMarkerId(null);
+    setMemberMarkerMap({});
+  };
+
+  const renderAddress = (member: MemberItem) =>
+    [member.address, member.city, member.country].filter(Boolean).join(", ") || "Chưa có địa chỉ chi tiết";
 
   return (
     <main className="min-h-screen bg-[#F8FAF8] p-4 text-[#0F172A] md:p-6">
@@ -271,30 +285,53 @@ export default function MapsPage() {
             Nhập thành phố và quốc gia, bấm Search để hiển thị marker các thành viên phù hợp.
           </p>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <form
+            className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]"
+            onSubmit={handleSearch}
+          >
             <div className="relative">
+              <label htmlFor="maps-city" className="sr-only">
+                Thành phố
+              </label>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
               <input
+                id="maps-city"
                 value={cityInput}
                 onChange={(event) => setCityInput(event.target.value)}
                 placeholder="Thành phố"
+                aria-label="Thành phố"
                 className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
               />
             </div>
-            <input
-              value={countryInput}
-              onChange={(event) => setCountryInput(event.target.value)}
-              placeholder="Quốc gia"
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
-            />
+            <div>
+              <label htmlFor="maps-country" className="sr-only">
+                Quốc gia
+              </label>
+              <input
+                id="maps-country"
+                value={countryInput}
+                onChange={(event) => setCountryInput(event.target.value)}
+                placeholder="Quốc gia"
+                aria-label="Quốc gia"
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20"
+              />
+            </div>
             <button
-              type="button"
-              onClick={handleSearch}
+              type="submit"
+              disabled={isLoadingMembers || isResolvingMap}
               className="rounded-lg bg-[#16A34A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#15803D]"
             >
-              Search
+              {isResolvingMap ? "Đang tìm..." : "Search"}
             </button>
-          </div>
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC]"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </button>
+          </form>
 
           {hasSearched && (
             <p className="mt-3 text-sm text-[#475569]">
@@ -304,7 +341,7 @@ export default function MapsPage() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <div className="h-[74vh] min-h-[520px]">
+          <div className="relative h-[74vh] min-h-[520px]">
             {!hasSearched ? (
               <div className="flex h-full items-center justify-center p-6">
                 <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAF8] px-5 py-4 text-center">
@@ -330,8 +367,59 @@ export default function MapsPage() {
                 onSelectMarker={setActiveMarkerId}
               />
             )}
+            {hasSearched && filteredMembers.length > 0 && isResolvingMap && (
+              <div className="absolute inset-0 z-[410] flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+                <div className="inline-flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[#334155] shadow-sm">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#16A34A]" />
+                  Đang định vị marker...
+                </div>
+              </div>
+            )}
           </div>
         </section>
+
+        {hasSearched && filteredMembers.length > 0 && (
+          <section className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+            <div className="border-b border-[#E2E8F0] px-4 py-3">
+              <p className="text-sm font-semibold text-[#0F172A]">Danh sách kết quả</p>
+              <p className="text-xs text-[#64748B]">
+                Click vào một thành viên để highlight marker tương ứng trên bản đồ.
+              </p>
+            </div>
+            <div className="max-h-80 overflow-auto">
+              {filteredMembers.map((member) => {
+                const isActive = activeMarkerId === member.id;
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => setActiveMarkerId(member.id)}
+                    className={[
+                      "flex w-full items-start justify-between gap-3 border-b border-[#F1F5F9] px-4 py-3 text-left transition",
+                      isActive ? "bg-[#ECFDF5]" : "hover:bg-[#F8FAFC]",
+                    ].join(" ")}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#0F172A]">{member.name}</p>
+                      <p className="mt-0.5 text-xs text-[#64748B]">{member.relation}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-[#475569]">{renderAddress(member)}</p>
+                    </div>
+                    <span
+                      className={[
+                        "mt-0.5 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        isActive
+                          ? "border-[#16A34A]/40 bg-[#DCFCE7] text-[#166534]"
+                          : "border-[#E2E8F0] bg-white text-[#64748B]",
+                      ].join(" ")}
+                    >
+                      {member.age ? `${member.age} tuổi` : "N/A"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {(isLoadingMembers || isResolvingMap) && (
           <section className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#475569]">

@@ -20,6 +20,14 @@ interface LeafletFamilyMapProps {
   onSelectMarker: (memberId: string) => void;
 }
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export function LeafletFamilyMap({ center, markers, onSelectMarker }: LeafletFamilyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -72,10 +80,18 @@ export function LeafletFamilyMap({ center, markers, onSelectMarker }: LeafletFam
       return;
     }
 
-    const bounds = L.latLngBounds(markers.map((item) => [item.lat, item.lng] as [number, number]));
-    map.fitBounds(bounds.pad(0.35), { animate: true, maxZoom: 14 });
+    const activeMember = markers.find((member) => member.isActive);
+    if (activeMember) {
+      const nextZoom = Math.max(map.getZoom(), 13);
+      map.setView([activeMember.lat, activeMember.lng], nextZoom, { animate: true });
+    } else {
+      const bounds = L.latLngBounds(markers.map((item) => [item.lat, item.lng] as [number, number]));
+      map.fitBounds(bounds.pad(0.35), { animate: true, maxZoom: 14 });
+    }
 
     for (const member of markers) {
+      const safeName = escapeHtml(member.name);
+      const safeRelation = escapeHtml(member.relation);
       const marker = L.circleMarker([member.lat, member.lng], {
         radius: member.isActive ? 12 : 9,
         color: member.isActive ? "#16A34A" : "#0EA5E9",
@@ -86,14 +102,17 @@ export function LeafletFamilyMap({ center, markers, onSelectMarker }: LeafletFam
 
       marker.bindPopup(
         `<div style="min-width:144px">
-          <p style="margin:0;font-weight:600">${member.name}</p>
-          <p style="margin:4px 0 0;font-size:12px;color:#475569">${member.relation}${
+          <p style="margin:0;font-weight:600">${safeName}</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#475569">${safeRelation}${
             member.age ? ` • ${member.age} tuổi` : ""
           }</p>
         </div>`,
       );
       marker.on("click", () => onSelectMarker(member.id));
       marker.addTo(markersLayer);
+      if (member.isActive) {
+        marker.openPopup();
+      }
     }
   }, [center.lat, center.lng, markers, onSelectMarker]);
 

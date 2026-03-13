@@ -31,6 +31,36 @@ const HORIZONTAL_GAP = 20;
 const COUPLE_GAP = 30;
 const VERTICAL_GAP = 120;
 const FAMILY_GAP = 60;
+const SPOUSE_LINE_LANE_OFFSET = 6;
+const BRANCH_STROKE_PALETTE = ["#64748B", "#0EA5E9", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6"];
+
+const genderRankForLayout = (gender: FamilyMember["gender"]) => {
+  if (gender === "female") return 0;
+  if (gender === "other") return 1;
+  return 2;
+};
+
+const compareMemberForLayout = (a: FamilyMember, b: FamilyMember) => {
+  const byGender = genderRankForLayout(a.gender) - genderRankForLayout(b.gender);
+  if (byGender !== 0) return byGender;
+  const byName = a.name.localeCompare(b.name, "vi");
+  if (byName !== 0) return byName;
+  return a.id.localeCompare(b.id);
+};
+
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+};
+
+const getBranchStrokeColor = (branchId: string, isHighlighted: boolean) => {
+  if (isHighlighted) return "#16a34a";
+  const index = hashString(branchId) % BRANCH_STROKE_PALETTE.length;
+  return BRANCH_STROKE_PALETTE[index];
+};
 
 export const FamilyTreeCanvas = ({
   members,
@@ -124,7 +154,12 @@ export const FamilyTreeCanvas = ({
       parentId: string;
       coupleX: number;
       coupleY: number;
-      childPositions: Array<{ x: number; y: number }>;
+      branches: Array<{
+        branchId: string;
+        branchLabel?: string;
+        anchorX: number;
+        childPositions: Array<{ x: number; y: number }>;
+      }>;
       isHighlighted: boolean;
     }> = [];
 
@@ -137,40 +172,33 @@ export const FamilyTreeCanvas = ({
       if (!member || processed.has(memberId)) return startX;
 
       const spouses = findSpouses(member);
-      const children = getChildren(memberId);
+      const childrenById = new Map<string, FamilyMember>();
+      getChildren(memberId).forEach((child) => {
+        childrenById.set(child.id, child);
+      });
+      spouses.forEach((spouse) => {
+        getChildren(spouse.id).forEach((child) => {
+          childrenById.set(child.id, child);
+        });
+      });
+      const children = Array.from(childrenById.values()).sort(compareMemberForLayout);
 
       // Mark as processed
       processed.add(memberId);
       spouses.forEach(spouse => processed.add(spouse.id));
 
-      // Helper to position member in center with spouses on sides
+      // Keep spouses visually stable: wife (female) on the left, husband (male) on the right.
       const positionMemberWithSpouses = (memberX: number) => {
-        if (spouses.length === 0) {
-          posMap.set(memberId, { x: memberX, y: genY });
-          return memberX + CARD_WIDTH;
-        } else if (spouses.length === 1) {
-          // Single spouse: member on left, spouse on right
-          posMap.set(memberId, { x: memberX, y: genY });
-          posMap.set(spouses[0].id, { x: memberX + CARD_WIDTH + COUPLE_GAP, y: genY });
-          return memberX + CARD_WIDTH * 2 + COUPLE_GAP;
-        } else {
-          // Multiple spouses: member in center, spouses on sides
-          // Layout: spouse1 - member - spouse2 - spouse3...
-          const leftSpouse = spouses[0];
-          const rightSpouses = spouses.slice(1);
+        const partnerGroup = [member, ...spouses];
+        const orderedPartners = partnerGroup.sort(compareMemberForLayout);
 
-          // Position left spouse
-          posMap.set(leftSpouse.id, { x: memberX, y: genY });
-          // Position member in center
-          posMap.set(memberId, { x: memberX + CARD_WIDTH + COUPLE_GAP, y: genY });
-          // Position right spouses
-          let rightX = memberX + (CARD_WIDTH + COUPLE_GAP) * 2;
-          rightSpouses.forEach(spouse => {
-            posMap.set(spouse.id, { x: rightX, y: genY });
-            rightX += CARD_WIDTH + COUPLE_GAP;
-          });
-          return rightX - COUPLE_GAP;
-        }
+        let cursorX = memberX;
+        orderedPartners.forEach((partner) => {
+          posMap.set(partner.id, { x: cursorX, y: genY });
+          cursorX += CARD_WIDTH + COUPLE_GAP;
+        });
+
+        return cursorX - COUPLE_GAP;
       };
 
       if (children.length === 0) {
@@ -232,7 +260,9 @@ export const FamilyTreeCanvas = ({
     };
 
     // Start with root members (no parentId - could be any generation)
-    const rootMembers = visibleMembers.filter(m => !m.parentId);
+    const rootMembers = visibleMembers
+      .filter((m) => !m.parentId)
+      .sort((a, b) => a.generation - b.generation || compareMemberForLayout(a, b));
     let currentX = 0;
 
     rootMembers.forEach(member => {
@@ -315,11 +345,12 @@ export const FamilyTreeCanvas = ({
       // Calculate couple center (member + all spouses)
       let coupleX: number;
       if (spouses.length > 0) {
-        const leftX = memberPos.x;
+        let leftX = memberPos.x;
         let rightX = memberPos.x + CARD_WIDTH;
         spouses.forEach(spouse => {
           const spousePos = posMap.get(spouse.id);
           if (spousePos) {
+            leftX = Math.min(leftX, spousePos.x);
             rightX = Math.max(rightX, spousePos.x + CARD_WIDTH);
           }
         });
@@ -330,27 +361,88 @@ export const FamilyTreeCanvas = ({
 
       const coupleY = memberPos.y + 32; // anchor at spouse line / avatar center
 
-      // Get child positions (only blood children, not spouses)
-      // Anchor at child avatar center so the line touches the node (like the reference image)
-      const childPositions = allChildren
+      // Get child nodes (only blood children, not spouses)
+      const childNodes = allChildren
         .filter(child => {
           const childSpouses = findSpouses(child);
           return childSpouses.length === 0 || !allChildren.find(c => childSpouses.some(sp => sp.id === c.id));
         })
-        .map(child => {
+        .map((child) => {
           const pos = posMap.get(child.id);
           if (!pos) return null;
-          return { x: pos.x + CARD_WIDTH / 2, y: pos.y + 32 };
+          return {
+            child,
+            position: { x: pos.x + CARD_WIDTH / 2, y: pos.y + 32 },
+          };
         })
-        .filter(Boolean) as Array<{ x: number; y: number }>;
+        .filter(Boolean) as Array<{ child: FamilyMember; position: { x: number; y: number } }>;
 
-      if (childPositions.length > 0) {
+      if (childNodes.length > 0) {
+        const memberCenterX = memberPos.x + CARD_WIDTH / 2;
+        const spouseCenterById = new Map<string, number>();
+        spouses.forEach((spouse) => {
+          const spousePos = posMap.get(spouse.id);
+          if (spousePos) {
+            spouseCenterById.set(spouse.id, spousePos.x + CARD_WIDTH / 2);
+          }
+        });
+
+        const branchByAnchor = new Map<
+          string,
+          {
+            branchId: string;
+            branchLabel?: string;
+            anchorX: number;
+            childPositions: Array<{ x: number; y: number }>;
+          }
+        >();
+        childNodes.forEach(({ child, position }) => {
+          let anchorX = coupleX;
+          let branchId = `member:${member.id}`;
+          let branchLabel: string | undefined;
+
+          if (child.parentId === member.id && spouses.length === 1) {
+            const spouseCenter = spouseCenterById.get(spouses[0].id);
+            if (spouseCenter !== undefined) {
+              anchorX = (memberCenterX + spouseCenter) / 2;
+              branchId = `spouse:${spouses[0].id}`;
+              branchLabel = `Con của ${spouses[0].name}`;
+            } else {
+              anchorX = memberCenterX;
+            }
+          } else if (child.parentId && spouseCenterById.has(child.parentId)) {
+            const spouseCenter = spouseCenterById.get(child.parentId)!;
+            anchorX = (memberCenterX + spouseCenter) / 2;
+            branchId = `spouse:${child.parentId}`;
+            const spouse = spouses.find((candidate) => candidate.id === child.parentId);
+            branchLabel = spouse ? `Con của ${spouse.name}` : undefined;
+          } else if (spouses.length === 0) {
+            anchorX = memberCenterX;
+          }
+
+          const anchorKey = String(Math.round(anchorX * 1000) / 1000);
+          const key = `${branchId}@${anchorKey}`;
+          const branch = branchByAnchor.get(key) ?? { branchId, branchLabel, anchorX, childPositions: [] };
+          if (!branch.branchLabel && branchLabel) {
+            branch.branchLabel = branchLabel;
+          }
+          branch.childPositions.push(position);
+          branchByAnchor.set(key, branch);
+        });
+
+        const branches = Array.from(branchByAnchor.values()).map((branch) => ({
+          branchId: branch.branchId,
+          branchLabel: branch.branchLabel,
+          anchorX: branch.anchorX,
+          childPositions: branch.childPositions.sort((a, b) => a.x - b.x),
+        }));
+
         const isHighlighted = hoveredMemberId === member.id || spouses.some(sp => hoveredMemberId === sp.id);
         conns.push({
           parentId: member.id,
           coupleX,
           coupleY,
-          childPositions,
+          branches,
           isHighlighted: !!isHighlighted,
         });
       }
@@ -374,7 +466,12 @@ export const FamilyTreeCanvas = ({
 
     conns.forEach(conn => {
       conn.coupleX += offsetX;
-      conn.childPositions.forEach(cp => { cp.x += offsetX; });
+      conn.branches.forEach((branch) => {
+        branch.anchorX += offsetX;
+        branch.childPositions.forEach((cp) => {
+          cp.x += offsetX;
+        });
+      });
     });
 
     return { positions: posMap, connections: conns };
@@ -395,6 +492,30 @@ export const FamilyTreeCanvas = ({
 
   const renderConnections = useCallback(() => {
     const lines: ReactElement[] = [];
+
+    // Build deterministic line lanes for multi-spouse relationships to reduce overdraw.
+    const spouseLineLaneByPair = new Map<string, number>();
+    visibleMembers.forEach((member) => {
+      const spouses = findSpouses(member);
+      if (spouses.length <= 1) return;
+
+      const orderedSpouses = spouses
+        .filter((spouse) => visibleMembers.some((m) => m.id === spouse.id))
+        .sort((a, b) => {
+          const aPos = positions.get(a.id);
+          const bPos = positions.get(b.id);
+          if (!aPos || !bPos) return compareMemberForLayout(a, b);
+          return aPos.x - bPos.x;
+        });
+
+      const midpoint = (orderedSpouses.length - 1) / 2;
+      orderedSpouses.forEach((spouse, index) => {
+        const key = [member.id, spouse.id].sort().join("-");
+        if (!spouseLineLaneByPair.has(key)) {
+          spouseLineLaneByPair.set(key, (index - midpoint) * SPOUSE_LINE_LANE_OFFSET);
+        }
+      });
+    });
 
     // Draw spouse connections (horizontal lines between couples - supports multiple spouses)
     const drawnSpouses = new Set<string>();
@@ -418,7 +539,8 @@ export const FamilyTreeCanvas = ({
 
         const leftX = Math.min(memberPos.x, spousePos.x) + CARD_WIDTH + svgOffset;
         const rightX = Math.max(memberPos.x, spousePos.x) + svgOffset;
-        const y = memberPos.y + 32; // Center of avatar
+        const laneOffset = spouseLineLaneByPair.get(key) ?? 0;
+        const y = memberPos.y + 32 + laneOffset; // Center of avatar + lane offset
 
         const midX = (leftX + rightX) / 2;
 
@@ -465,10 +587,12 @@ export const FamilyTreeCanvas = ({
 
     // Draw parent-child connections
     connections.forEach((conn, idx) => {
-      const { parentId, coupleX, coupleY, childPositions, isHighlighted } = conn;
+      const { parentId, coupleX, coupleY, branches, isHighlighted } = conn;
       const color = isHighlighted ? "#16a34a" : "#9ca3af";
       const width = isHighlighted ? 2.5 : 2;
       const isCollapsed = collapsedNodes.has(parentId);
+      const childPositions = branches.flatMap((branch) => branch.childPositions);
+      if (childPositions.length === 0) return;
 
       // Offset all X coordinates
       const cx = coupleX + svgOffset;
@@ -520,40 +644,101 @@ export const FamilyTreeCanvas = ({
 
       // Only draw the rest if not collapsed
       if (!isCollapsed) {
-        // Horizontal line at mid level
-        const offsetChildPositions = childPositions.map(cp => ({ x: cp.x + svgOffset, y: cp.y }));
+        // Draw branch per specific couple anchor to make child-parent relationship explicit
+        const offsetBranches = branches.map((branch) => ({
+          branchId: branch.branchId,
+          branchLabel: branch.branchLabel,
+          anchorX: branch.anchorX + svgOffset,
+          childPositions: branch.childPositions.map((cp) => ({ x: cp.x + svgOffset, y: cp.y })),
+        }));
 
-        if (offsetChildPositions.length > 1) {
-          const leftX = Math.min(...offsetChildPositions.map(c => c.x));
-          const rightX = Math.max(...offsetChildPositions.map(c => c.x));
-
+        offsetBranches.forEach((branch, branchIndex) => {
+          const branchStroke = getBranchStrokeColor(branch.branchId, isHighlighted);
+          const hasMultipleBranches = offsetBranches.length > 1;
+          const branchStrokeWidth = hasMultipleBranches ? width + 0.4 : width;
           lines.push(
-            <line key={`h-${idx}`} x1={leftX} y1={midY} x2={rightX} y2={midY}
-              stroke={color} strokeWidth={width}
-            />
+            <line
+              key={`branch-v-${idx}-${branchIndex}`}
+              x1={branch.anchorX}
+              y1={coupleY}
+              x2={branch.anchorX}
+              y2={midY}
+              stroke={branchStroke}
+              strokeWidth={branchStrokeWidth}
+            />,
           );
 
-          // Connect parent drop to horizontal if needed
-          if (cx < leftX) {
-            lines.push(<line key={`h-l-${idx}`} x1={cx} y1={midY} x2={leftX} y2={midY} stroke={color} strokeWidth={width} />);
-          } else if (cx > rightX) {
-            lines.push(<line key={`h-r-${idx}`} x1={rightX} y1={midY} x2={cx} y2={midY} stroke={color} strokeWidth={width} />);
+          if (branch.childPositions.length > 1) {
+            const leftX = Math.min(...branch.childPositions.map((cp) => cp.x));
+            const rightX = Math.max(...branch.childPositions.map((cp) => cp.x));
+            lines.push(
+              <line
+                key={`branch-h-${idx}-${branchIndex}`}
+                x1={leftX}
+                y1={midY}
+                x2={rightX}
+                y2={midY}
+                stroke={branchStroke}
+                strokeWidth={branchStrokeWidth}
+              />,
+            );
+          } else {
+            lines.push(
+              <line
+                key={`branch-h-single-${idx}-${branchIndex}`}
+                x1={branch.anchorX}
+                y1={midY}
+                x2={branch.childPositions[0].x}
+                y2={midY}
+                stroke={branchStroke}
+                strokeWidth={branchStrokeWidth}
+              />,
+            );
           }
-        } else {
-          lines.push(
-            <line key={`h-single-${idx}`} x1={cx} y1={midY} x2={offsetChildPositions[0].x} y2={midY}
-              stroke={color} strokeWidth={width}
-            />
-          );
-        }
 
-        // Vertical lines to each child
-        offsetChildPositions.forEach((cp, ci) => {
-          lines.push(
-            <line key={`v-up-${idx}-${ci}`} x1={cp.x} y1={midY} x2={cp.x} y2={cp.y}
-              stroke={color} strokeWidth={width}
-            />
-          );
+          branch.childPositions.forEach((cp, ci) => {
+            lines.push(
+              <line
+                key={`branch-v-child-${idx}-${branchIndex}-${ci}`}
+                x1={cp.x}
+                y1={midY}
+                x2={cp.x}
+                y2={cp.y}
+                stroke={branchStroke}
+                strokeWidth={branchStrokeWidth}
+              />,
+            );
+          });
+
+          if (hasMultipleBranches && branch.branchLabel) {
+            lines.push(
+              <foreignObject
+                key={`branch-label-${idx}-${branchIndex}`}
+                x={branch.anchorX + 6}
+                y={midY - 22}
+                width={160}
+                height={20}
+                style={{ overflow: "visible", pointerEvents: "none" }}
+              >
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "1px 6px",
+                    borderRadius: "9999px",
+                    border: `1px solid ${branchStroke}`,
+                    background: "#ffffff",
+                    color: branchStroke,
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {branch.branchLabel}
+                </div>
+              </foreignObject>,
+            );
+          }
         });
       }
     });

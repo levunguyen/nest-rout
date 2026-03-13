@@ -24,6 +24,7 @@ interface MemberDialogProps {
   member?: FamilyMember | null;
   initialValues?: Partial<Omit<FamilyMember, "id">>;
   lockParentSelection?: boolean;
+  lockGeneration?: boolean;
   allMembers: FamilyMember[];
   parents: FamilyMember[];
   onClose: () => void;
@@ -36,6 +37,7 @@ export const MemberDialog = ({
   member,
   initialValues,
   lockParentSelection = false,
+  lockGeneration = false,
   allMembers,
   parents,
   onClose,
@@ -95,6 +97,9 @@ export const MemberDialog = ({
     if (isSaving) return;
     const parsedBirthYear = birthYear ? parseInt(birthYear) : undefined;
     const parsedDeathYear = deathYear ? parseInt(deathYear) : undefined;
+    const selectedParent = parentId ? allMembers.find((candidate) => candidate.id === parentId) : undefined;
+    const finalGeneration =
+      lockGeneration && selectedParent ? selectedParent.generation + 1 : generation;
     setIsSaving(true);
     const ok = await onSave({
       name,
@@ -106,7 +111,7 @@ export const MemberDialog = ({
       phone: phone.trim() || undefined,
       gender,
       parentId: parentId || undefined,
-      generation,
+      generation: finalGeneration,
       spouseIds,
       imageUrl: imageUrl.trim() || undefined,
     });
@@ -174,6 +179,16 @@ export const MemberDialog = ({
       (Number.isFinite(parsedDeathYear) &&
         (parsedBirthYear === undefined || parsedDeathYear >= parsedBirthYear)));
   const isValid = name.trim().length > 1 && hasValidYears;
+
+  useEffect(() => {
+    if (!lockGeneration || !parentId) return;
+    const selectedParent = allMembers.find((candidate) => candidate.id === parentId);
+    if (!selectedParent) return;
+    const nextGeneration = selectedParent.generation + 1;
+    if (generation !== nextGeneration) {
+      setGeneration(nextGeneration);
+    }
+  }, [allMembers, generation, lockGeneration, parentId]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -347,6 +362,7 @@ export const MemberDialog = ({
                       onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
                       min={-1}
                       max={20}
+                      disabled={lockGeneration}
                       className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
                     />
                   </div>
@@ -533,7 +549,15 @@ export const MemberDialog = ({
                 </div>
                 <div className="grid gap-2">
                   <Label className="text-[#0F172A]">Đời thứ</Label>
-                  <Input type="number" value={generation} onChange={(e) => setGeneration(parseInt(e.target.value) || 1)} min={-1} max={20} className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20" />
+                  <Input
+                    type="number"
+                    value={generation}
+                    onChange={(e) => setGeneration(parseInt(e.target.value) || 1)}
+                    min={-1}
+                    max={20}
+                    disabled={lockGeneration}
+                    className="border-[#E2E8F0] focus-visible:ring-[#16A34A]/20"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="imageUrl" className="text-[#0F172A]">Ảnh đại diện (URL)</Label>

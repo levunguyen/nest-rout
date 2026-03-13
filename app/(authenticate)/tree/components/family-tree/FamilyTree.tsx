@@ -91,6 +91,7 @@ export const FamilyTree = () => {
     Partial<Omit<FamilyMember, "id">> | null
   >(null);
   const [isSpouseQuickAdd, setIsSpouseQuickAdd] = useState(false);
+  const [isChildQuickAdd, setIsChildQuickAdd] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -361,6 +362,7 @@ export const FamilyTree = () => {
   const handleAddMember = useCallback(() => {
     setDialogInitialValues(null);
     setIsSpouseQuickAdd(false);
+    setIsChildQuickAdd(false);
     setIsAddingNew(true);
     setEditingMember(null);
     setDialogSeed(Date.now());
@@ -370,6 +372,7 @@ export const FamilyTree = () => {
   const handleEditMember = useCallback((member: FamilyMember) => {
     setDialogInitialValues(null);
     setIsSpouseQuickAdd(false);
+    setIsChildQuickAdd(false);
     setIsAddingNew(false);
     setEditingMember(member);
     setDialogSeed(Date.now());
@@ -440,6 +443,41 @@ export const FamilyTree = () => {
     }
   }, [editingMember, normalizeApiError]);
 
+  const handleDeleteMemberFromContext = useCallback(async () => {
+    if (!contextMenu) return;
+
+    const target = contextMenu.member;
+    const confirmed =
+      typeof window === "undefined"
+        ? false
+        : window.confirm(`Bạn có chắc muốn xóa thành viên "${target.name}" không?`);
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/family-members/${target.id}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(normalizeApiError(payload?.error, "Không thể xóa thành viên"));
+        return;
+      }
+
+      setMembers((prev) => prev.filter((member) => member.id !== target.id));
+      if (selectedMember?.id === target.id) {
+        setSelectedMember(null);
+      }
+      if (editingMember?.id === target.id) {
+        setEditingMember(null);
+      }
+      setContextMenu(null);
+      toast.success("Đã xóa thành viên!");
+    } catch {
+      toast.error("Lỗi kết nối khi xóa thành viên");
+    }
+  }, [contextMenu, editingMember?.id, normalizeApiError, selectedMember?.id]);
+
   const handleMemberClick = useCallback((member: FamilyMember) => {
     setContextMenu(null);
     setSelectedMember(member);
@@ -470,6 +508,7 @@ export const FamilyTree = () => {
   const handleAddChildFromContext = useCallback(() => {
     if (!contextMenu) return;
     setIsSpouseQuickAdd(false);
+    setIsChildQuickAdd(true);
     setDialogInitialValues({
       parentId: contextMenu.member.id,
       generation: contextMenu.member.generation + 1,
@@ -489,6 +528,7 @@ export const FamilyTree = () => {
       return;
     }
     setIsSpouseQuickAdd(true);
+    setIsChildQuickAdd(false);
     setDialogInitialValues({
       parentId: undefined,
       generation: contextMenu.member.generation,
@@ -502,6 +542,11 @@ export const FamilyTree = () => {
   }, [contextMenu]);
 
   const potentialParents = members.filter((m) => m.generation < 20);
+  const contextMenuSpouses = contextMenu ? getSpouses(contextMenu.member, members) : [];
+  const contextMenuHasSpouse = contextMenuSpouses.length > 0;
+  const canAddChildFromContext = contextMenu
+    ? contextMenu.member.gender !== "male" || contextMenuHasSpouse
+    : false;
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -763,6 +808,7 @@ export const FamilyTree = () => {
           member={isAddingNew ? null : editingMember}
           initialValues={isAddingNew ? dialogInitialValues ?? undefined : undefined}
           lockParentSelection={isAddingNew && isSpouseQuickAdd}
+          lockGeneration={isAddingNew && isChildQuickAdd}
           allMembers={members}
           parents={potentialParents}
           onClose={() => setIsDialogOpen(false)}
@@ -779,24 +825,42 @@ export const FamilyTree = () => {
             <div className="border-b border-[#DCFCE7] bg-[#F0FDF4] px-3 py-2">
               <p className="line-clamp-1 text-xs font-semibold text-[#166534]">{contextMenu.member.name}</p>
             </div>
-            <button
-              type="button"
-              onClick={handleAddChildFromContext}
-              className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
-            >
-              <span className="text-sm font-medium text-[#0F172A]">Thêm con</span>
-              <span className="text-xs text-[#64748B]">Tự gán cha/mẹ là thành viên đang chọn</span>
-            </button>
+            {canAddChildFromContext && (
+              <button
+                type="button"
+                onClick={handleAddChildFromContext}
+                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
+              >
+                <span className="text-sm font-medium text-[#0F172A]">Thêm con</span>
+                <span className="text-xs text-[#64748B]">Tự gán cha/mẹ là thành viên đang chọn</span>
+              </button>
+            )}
             {contextMenu.member.gender === "male" && (
               <button
                 type="button"
                 onClick={handleAddSpouseFromContext}
-                className="flex w-full flex-col items-start gap-0.5 border-t border-[#F1F5F9] px-3 py-2 text-left transition hover:bg-[#F8FAFC]"
+                className={[
+                  "flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition hover:bg-[#F8FAFC]",
+                  canAddChildFromContext ? "border-t border-[#F1F5F9]" : "",
+                ].join(" ")}
               >
-                <span className="text-sm font-medium text-[#0F172A]">Thêm vợ/chồng</span>
+                <span className="text-sm font-medium text-[#0F172A]">
+                  {contextMenuHasSpouse ? "Thêm vợ/chồng" : "Thêm vợ"}
+                </span>
                 <span className="text-xs text-[#64748B]">Tự gán quan hệ hôn nhân với thành viên này</span>
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleDeleteMemberFromContext}
+              className={[
+                "flex w-full flex-col items-start gap-0.5 border-t border-[#F1F5F9] px-3 py-2 text-left transition",
+                "text-red-600 hover:bg-red-50",
+              ].join(" ")}
+            >
+              <span className="text-sm font-medium">Xóa thành viên</span>
+              <span className="text-xs text-red-500">Gỡ thành viên này khỏi cây gia phả</span>
+            </button>
           </div>
         )}
       </div>
